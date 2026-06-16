@@ -1,0 +1,13 @@
+# Rust / Cargo build artifacts
+app/target
+
+# Misc
+*.log
+
+# OS / editors
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# Cargo.lock is kept under version control (binary/game: pin dependencies).
