@@ -1,0 +1,22 @@
+#!/bin/sh
+# Block direct pushes to the integration branch. Keep this hook FAST: heavy
+# checks (clippy, tests) must NOT run here -- a long hook leaves the remote
+# connection idle and it gets dropped. Run 'make check' before opening a PR,
+# and rely on CI for the full gate.
+# Enable with: make hooks  (sets core.hooksPath to .githooks)
+
+while read -r _local_ref _local_sha remote_ref _remote_sha; do
+  case "$remote_ref" in
+    refs/heads/main|refs/heads/master)
+      echo "pre-push: pushing directly to '$remote_ref' is blocked." >&2
+      echo "  Push your feat/ branch and merge into main via a Pull Request." >&2
+      echo "  (bypass once with: git push --no-verify)" >&2
+      exit 1
+      ;;
+  esac
+done
+
+if ! make fmt-check; then
+  echo "pre-push: code is not formatted. Run 'make fmt' and re-commit." >&2
+  exit 1
+fi
