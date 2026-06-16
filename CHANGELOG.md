@@ -4,7 +4,9 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), ver
 
 ## [Unreleased]
 
-(Nothing yet -- project is being set up.)
+### Added
+
+- 3D scene rendering a lit sphere: a unit sphere with a `StandardMaterial`, a directional sun light, and a 3D camera.
 
 ## [0.1.0] -- planned
 
