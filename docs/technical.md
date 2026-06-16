@@ -10,7 +10,7 @@
 
 ## Repository layout
 
-The Rust crate lives in `app/` (package `bevy-planet`, a single binary for now); documentation and tooling stay at the repo root. There is no Cargo manifest at the root: the `Makefile` drives cargo inside `app/`. If a pure, testable generation library later needs to be separated from the Bevy app, `app/` can be promoted to a Cargo workspace at that point (do not pre-build it).
+The code lives in `app/` (package `bevy-planet`): a library crate (`bevy_planet`, root `lib.rs`) holding the game logic, plus a thin binary (`main.rs`) that only builds the `App` and adds plugins. Domain logic is organised as Bevy `Plugin`s exposed by the library; internal components and systems stay private to their module. Documentation and tooling stay at the repo root; there is no Cargo manifest at the root (the `Makefile` drives cargo inside `app/`). The library boundary keeps the logic testable behind a clean public API.
 
 ## Architecture (target)
 
@@ -21,12 +21,13 @@ The Rust crate lives in `app/` (package `bevy-planet`, a single binary for now);
 
 ### Envisioned modules (to be confirmed in practice)
 
-| Domain      | Role                                    |
-|-------------|-----------------------------------------|
-| (to define) | Procedural generation (source of truth) |
-| (to define) | Orbital view (whole planet, low-res)    |
-| (to define) | First-person view (surface, high-res)   |
-| (to define) | Mapping between coordinate systems      |
+| Module / domain     | Role                                                                   |
+|---------------------|------------------------------------------------------------------------|
+| `star_system` (mvp) | Central star (light) + orbiting/spinning bodies, as `StarSystemPlugin` |
+| (to define)         | Procedural generation (source of truth)                                |
+| (to define)         | Orbital view (whole planet, low-res)                                   |
+| (to define)         | First-person view (surface, high-res)                                  |
+| (to define)         | Mapping between coordinate systems                                     |
 
 ## The two scales and the coordinate mapping
 
