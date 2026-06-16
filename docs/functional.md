@@ -35,3 +35,5 @@ Explore a procedurally generated planet at two scales:
 4. TODO You can rotate around it (orbital view).
 5. TODO You can "enter": switch to first-person on the surface.
 6. TODO The surface terrain is consistent with the orbital view.
+
+> Current sandbox (a learning step, may change): a central star lights the scene while a planet orbits it and spins on its own axis.
