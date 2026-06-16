@@ -27,7 +27,7 @@ fmt-check: ## Check formatting without modifying (used as a gate)
 	cd $(APP) && cargo fmt --check
 
 lint: ## Clippy in strict mode: every warning becomes an error
-	cd $(APP) && cargo clippy --all-targets --features bevy/dynamic_linking -- -D warnings
+	cd $(APP) && cargo clippy --all-targets -- -D warnings
 
 test: ## Run the tests (pure logic: math, coordinate mapping, generation)
 	cd $(APP) && cargo test

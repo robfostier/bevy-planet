@@ -21,12 +21,12 @@ The Rust crate lives in `app/` (package `bevy-planet`, a single binary for now);
 
 ### Envisioned modules (to be confirmed in practice)
 
-| Domain | Role |
-|---|---|
+| Domain      | Role                                    |
+|-------------|-----------------------------------------|
 | (to define) | Procedural generation (source of truth) |
-| (to define) | Orbital view (whole planet, low-res) |
-| (to define) | First-person view (surface, high-res) |
-| (to define) | Mapping between coordinate systems |
+| (to define) | Orbital view (whole planet, low-res)    |
+| (to define) | First-person view (surface, high-res)   |
+| (to define) | Mapping between coordinate systems      |
 
 ## The two scales and the coordinate mapping
 
@@ -36,6 +36,7 @@ Core of the project. Two reference frames to connect:
 - "World" coordinates: the Cartesian space of the Bevy scene (`Transform`).
 
 The generation function takes a position on the sphere and returns the relief. It must be:
+
 - deterministic (same seed -> same world),
 - resolution-independent (sampleable at any density),
 - unique (both orbital and first-person call it).
@@ -51,8 +52,26 @@ This is pure computation: to be covered by unit tests.
 
 ## Technical decisions (lightweight ADR)
 
-| Date | Decision | Reason |
-|---|---|---|
-| 2026-06-16 | Bevy 0.18, Rust edition 2024 | Latest stable versions |
-| 2026-06-16 | `dynamic_linking` in dev only | Fast recompiles |
+| Date       | Decision                                         | Reason                          |
+|------------|--------------------------------------------------|---------------------------------|
+| 2026-06-16 | Bevy 0.18, Rust edition 2024                     | Latest stable versions          |
+| 2026-06-16 | `dynamic_linking` in dev only                    | Fast recompiles                 |
 | 2026-06-16 | Deps at `opt-level=3`, our code at `opt-level=1` | Fast dev build + smooth runtime |
+
+## Known issues / environment
+
+### GPU acceleration under WSL2 (software rendering fallback)
+
+On the current dev machine (WSL2, Ubuntu 24.04, NVIDIA GeForce RTX 2060 SUPER) Bevy renders with `llvmpipe` (CPU software rasterizer), logged as warning `b0006`. This is acceptable for the early, lightweight milestones; it must be revisited before heavy meshes / LOD.
+
+Diagnosis (2026-06-16):
+
+- The GPU is reachable: `GALLIUM_DRIVER=d3d12 glxinfo`/`eglinfo` both report `D3D12 (NVIDIA GeForce RTX 2060 SUPER)`, so Mesa's `d3d12` Gallium driver gives hardware OpenGL.
+- Mesa defaults to `llvmpipe` because WSL exposes no DRM node; the `d3d12` driver is only used when forced (`GALLIUM_DRIVER=d3d12` / `MESA_LOADER_DRIVER_OVERRIDE=d3d12`).
+- Hardware Vulkan is unavailable: only `lavapipe` (software) is present; there is no Dozen (`dzn`) ICD or library on disk (`find /usr -iname '*dzn*'` is empty). Hardware Vulkan in WSL goes through `dzn` (Vulkan-on-D3D12), which Ubuntu's `mesa-vulkan-drivers` does not ship here.
+- wgpu's GL backend cannot grab the working `d3d12` adapter under WSLg: `WGPU_BACKEND=gl GALLIUM_DRIVER=d3d12` still panics with "Unable to find a GPU" (the windowed EGL path fails with `DRI3 error: Could not get DRI3 device`, a known wgpu-on-WSL limitation).
+
+Future options (when performance matters):
+
+- Install a Mesa build that ships the `dzn` Vulkan driver (PPA or source) to get hardware Vulkan, Bevy's preferred backend.
+- Build/run on native Windows or native Linux, where the GPU drivers expose hardware Vulkan directly.

@@ -1,6 +1,7 @@
 # bevy-planet -- Project context
 
 A Rust + Bevy 0.18 game: a procedural planet in a 3D scene, observable at two linked scales connected by a coordinate mapping:
+
 - Orbital view: the whole planet, "low-res".
 - First-person view: on the surface, with a high density of detail, following the SAME procedural generation rules (single source of truth).
 
@@ -21,10 +22,12 @@ This repository is a LEARNING project. The assistant acts as a tutor (see `.clau
 - Written in English.
 - ASCII characters only: no emoji, no accents, no typographic symbols (use `->`, `--`, plain quotes).
 - No hard line wrapping inside a paragraph: one paragraph is one line; only break lines for list items, headings, and table rows.
+- Pass markdownlint cleanly: blank line around every heading, list, fenced code block and table; a language on every code fence (` ```bash `, ` ```rust `, ` ```text `, ...); bare URLs wrapped in angle brackets `<...>`; single trailing newline; no trailing spaces or consecutive blank lines. Line length (MD013) is intentionally off.
 
 ## Tooling
 
 Everything goes through `make` (see `Makefile`):
+
 - `make run` -> `cargo run --features bevy/dynamic_linking` (dev, fast linking)
 - `make fmt` / `make fmt-check` ; `make lint` (clippy `-D warnings`) ; `make test`
 - `make check` -> CI-like gate (fmt-check + lint + test)
