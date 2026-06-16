@@ -5,7 +5,7 @@
 APP := app
 
 .DEFAULT_GOAL := help
-.PHONY: help run build release fmt fmt-check lint test check watch clean
+.PHONY: help hooks run build release fmt fmt-check lint test check watch clean
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -39,3 +39,7 @@ watch: ## Rebuild + rerun on every save (requires cargo-watch)
 
 clean: ## Clean build artifacts
 	cd $(APP) && cargo clean
+
+hooks: ## Install the versioned git hooks (run once per clone)
+	git config core.hooksPath .githooks
+	@echo "git hooks enabled (core.hooksPath -> .githooks)"
