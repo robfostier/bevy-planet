@@ -1,6 +1,7 @@
 use crate::star_system::{CelestialBody, SystemBodies};
 use bevy::{
     input::mouse::{MouseMotion, MouseWheel},
+    light::cluster::ClusterConfig,
     prelude::*,
     window::{CursorGrabMode, CursorOptions},
 };
@@ -21,8 +22,10 @@ struct OrbitCamera {
 fn spawn_orbit_camera(mut commands: Commands) {
     commands.spawn((
         Camera3d::default(),
+        ClusterConfig::Single,
+        MeshPickingCamera,
         OrbitCamera {
-            radius: 6.0,
+            radius: 9.0,
             azimuth: 0.0,
             elevation: 0.0,
             target: None,
@@ -36,6 +39,24 @@ fn bind_orbit_camera_target(
 ) {
     for mut orbit_camera in &mut cameras {
         orbit_camera.target.get_or_insert(system_bodies.star);
+    }
+}
+
+fn pick_orbit_camera_target(
+    click: On<Pointer<Click>>,
+    bodies: Query<&CelestialBody>,
+    mut cameras: Query<&mut OrbitCamera>,
+) {
+    if click.button != PointerButton::Primary {
+        return;
+    };
+
+    if !bodies.contains(click.entity) {
+        return;
+    };
+
+    for mut orbit_camera in &mut cameras {
+        orbit_camera.target = Some(click.entity);
     }
 }
 
@@ -127,16 +148,23 @@ pub struct CameraPlugin;
 
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, spawn_orbit_camera).add_systems(
-            Update,
-            (
-                bind_orbit_camera_target,
-                grab_cursor_on_mmb,
-                drag_orbit_camera,
-                zoom_orbit_camera,
-                sync_orbit_camera_transform,
-            )
-                .chain(),
-        );
+        app.add_plugins(MeshPickingPlugin)
+            .insert_resource(MeshPickingSettings {
+                require_markers: true,
+                ..default()
+            })
+            .add_systems(Startup, spawn_orbit_camera)
+            .add_observer(pick_orbit_camera_target)
+            .add_systems(
+                Update,
+                (
+                    bind_orbit_camera_target,
+                    grab_cursor_on_mmb,
+                    drag_orbit_camera,
+                    zoom_orbit_camera,
+                    sync_orbit_camera_transform,
+                )
+                    .chain(),
+            );
     }
 }

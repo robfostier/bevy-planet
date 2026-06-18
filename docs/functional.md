@@ -23,10 +23,11 @@ Explore a procedurally generated planet at two scales:
 
 ## Controls
 
-| Action           | Key                 | Status |
-|------------------|---------------------|--------|
-| Orbit the camera | Middle mouse + drag | DONE   |
-| Zoom in / out    | Mouse wheel         | MVP    |
+| Action                     | Key                  | Status |
+|----------------------------|----------------------|--------|
+| Orbit the camera           | Middle mouse + drag  | DONE   |
+| Zoom in / out              | Mouse wheel          | MVP    |
+| Switch the camera's target | Left click on a body | MVP    |
 
 ## Target journey (milestones)
 

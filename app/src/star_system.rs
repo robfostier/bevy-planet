@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{camera::visibility::NoFrustumCulling, prelude::*};
 
 #[derive(Resource)]
 pub(crate) struct SystemBodies {
@@ -6,11 +6,13 @@ pub(crate) struct SystemBodies {
 }
 
 #[derive(Component)]
+#[require(Pickable)]
 pub(crate) struct CelestialBody {
     pub(crate) radius: f32,
 }
 
 #[derive(Component)]
+#[require(NoFrustumCulling)]
 struct Star;
 
 #[derive(Component)]
