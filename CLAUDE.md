@@ -32,7 +32,7 @@ Everything goes through `make` (see `Makefile`):
 - `make fmt` / `make fmt-check` ; `make lint` (clippy `-D warnings`) ; `make test`
 - `make check` -> CI-like gate (fmt-check + lint + test)
 
-## System dependencies (Linux/WSL, Ubuntu 24.04)
+## System dependencies (Linux, Ubuntu 24.04+)
 
 `libwayland-dev libxkbcommon-dev libasound2-dev libudev-dev libx11-dev`
 

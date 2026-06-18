@@ -17,7 +17,7 @@ Bootstrapping -- scaffolding in place. See `CHANGELOG.md`.
 ## Requirements
 
 - Rust >= 1.96 (`rustc`, `cargo`) -- developed on the latest stable
-- System dependencies, plus `clang` + `lld` (the build links with `lld` via `app/.cargo/config.toml`) on Linux/WSL Ubuntu 24.04:
+- System dependencies, plus `clang` + `lld` (the build links with `lld` via `app/.cargo/config.toml`) on Linux Ubuntu 24.04+:
 
   ```bash
   sudo apt install -y libwayland-dev libxkbcommon-dev libasound2-dev libudev-dev libx11-dev clang lld

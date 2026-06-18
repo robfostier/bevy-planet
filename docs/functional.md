@@ -21,11 +21,12 @@ Explore a procedurally generated planet at two scales:
 
 - A mechanism (to define) switches from orbit to surface and back.
 
-## Controls (to define)
+## Controls
 
-| Action      | Key | Status |
-|-------------|-----|--------|
-| (to define) | --  | TODO   |
+| Action           | Key                 | Status |
+|------------------|---------------------|--------|
+| Orbit the camera | Middle mouse + drag | DONE   |
+| Zoom in / out    | Mouse wheel         | MVP    |
 
 ## Target journey (milestones)
 

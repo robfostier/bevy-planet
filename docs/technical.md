@@ -61,18 +61,4 @@ This is pure computation: to be covered by unit tests.
 
 ## Known issues / environment
 
-### GPU acceleration under WSL2 (software rendering fallback)
-
-On the current dev machine (WSL2, Ubuntu 24.04, NVIDIA GeForce RTX 2060 SUPER) Bevy renders with `llvmpipe` (CPU software rasterizer), logged as warning `b0006`. This is acceptable for the early, lightweight milestones; it must be revisited before heavy meshes / LOD.
-
-Diagnosis (2026-06-16):
-
-- The GPU is reachable: `GALLIUM_DRIVER=d3d12 glxinfo`/`eglinfo` both report `D3D12 (NVIDIA GeForce RTX 2060 SUPER)`, so Mesa's `d3d12` Gallium driver gives hardware OpenGL.
-- Mesa defaults to `llvmpipe` because WSL exposes no DRM node; the `d3d12` driver is only used when forced (`GALLIUM_DRIVER=d3d12` / `MESA_LOADER_DRIVER_OVERRIDE=d3d12`).
-- Hardware Vulkan is unavailable: only `lavapipe` (software) is present; there is no Dozen (`dzn`) ICD or library on disk (`find /usr -iname '*dzn*'` is empty). Hardware Vulkan in WSL goes through `dzn` (Vulkan-on-D3D12), which Ubuntu's `mesa-vulkan-drivers` does not ship here.
-- wgpu's GL backend cannot grab the working `d3d12` adapter under WSLg: `WGPU_BACKEND=gl GALLIUM_DRIVER=d3d12` still panics with "Unable to find a GPU" (the windowed EGL path fails with `DRI3 error: Could not get DRI3 device`, a known wgpu-on-WSL limitation).
-
-Future options (when performance matters):
-
-- Install a Mesa build that ships the `dzn` Vulkan driver (PPA or source) to get hardware Vulkan, Bevy's preferred backend.
-- Build/run on native Windows or native Linux, where the GPU drivers expose hardware Vulkan directly.
+None currently known. The dev machine moved from WSL2 to a native Linux dual-boot setup (2026-06-17), which closed the WSL-specific GPU and input issues recorded in the logbook; hardware acceleration on the new machine still needs to be confirmed once heavier meshes / LOD make it relevant.

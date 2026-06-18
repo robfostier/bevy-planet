@@ -8,6 +8,7 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), ver
 
 - 3D scene rendering a lit sphere: a unit sphere with a `StandardMaterial`, a directional sun light, and a 3D camera.
 - Animated star system (`StarSystemPlugin`): a central emissive star with a point light, plus a planet that orbits it (position derived from elapsed time) and spins on its own axis.
+- Orbit camera (`CameraPlugin`): middle-mouse drag rotates around the origin (azimuth/elevation, elevation clamped to avoid flipping over the poles), scroll wheel zooms in and out, cursor is grabbed and hidden while dragging.
 - Library/binary split: game logic lives in a library crate (`bevy_planet`) exposed as Bevy plugins; the binary is a thin launcher.
 
 ## [0.1.0] -- planned
