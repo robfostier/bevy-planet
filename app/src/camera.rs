@@ -5,11 +5,12 @@ use bevy::{
     prelude::*,
     window::{CursorGrabMode, CursorOptions},
 };
-use std::f32::consts::FRAC_PI_4;
+use std::{f32::consts::FRAC_PI_4, time::Duration};
 
 const MOUSE_SENSITIVITY: f32 = 0.01;
 const MIN_CAMERA_DISTANCE: f32 = 2.0;
 const MAX_CAMERA_DISTANCE: f32 = 16.0;
+const DOUBLE_CLICK_WINDOW: Duration = Duration::from_millis(400);
 
 #[derive(Component)]
 struct OrbitCamera {
@@ -43,20 +44,33 @@ fn bind_orbit_camera_target(
 }
 
 fn pick_orbit_camera_target(
-    click: On<Pointer<Click>>,
+    mut click: On<Pointer<Click>>,
     bodies: Query<&CelestialBody>,
     mut cameras: Query<&mut OrbitCamera>,
+    mut state: Local<Option<(Entity, Duration)>>,
+    time: Res<Time<Real>>,
 ) {
-    if click.button != PointerButton::Primary {
+    // avoid a second trigger on the window (click bubbles by default)
+    click.propagate(false);
+
+    if click.button != PointerButton::Primary || !bodies.contains(click.entity) {
+        *state = None;
         return;
     };
 
-    if !bodies.contains(click.entity) {
+    let Some((last_entity, last_click_time)) = *state else {
+        *state = Some((click.entity, time.elapsed()));
         return;
     };
 
-    for mut orbit_camera in &mut cameras {
-        orbit_camera.target = Some(click.entity);
+    if last_entity == click.entity && time.elapsed() - last_click_time <= DOUBLE_CLICK_WINDOW {
+        *state = None;
+
+        for mut orbit_camera in &mut cameras {
+            orbit_camera.target = Some(click.entity);
+        }
+    } else {
+        *state = Some((click.entity, time.elapsed()));
     }
 }
 

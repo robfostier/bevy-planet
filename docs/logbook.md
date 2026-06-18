@@ -43,7 +43,7 @@ Done
 
 - Gave the orbit camera an optional target (`OrbitCamera.target: Option<Entity>`), defaulted to the system's star via a small `SystemBodies` resource exposed by `star_system` -- the two plugins stay decoupled (`star_system` knows nothing about cameras, `camera` only reads what it needs).
 - Bounded zoom using the target's `CelestialBody.radius`, and made the camera track the target's live `Transform` (translation and `look_at`), so it keeps following a body that moves.
-- Added click-to-select: left-clicking a `CelestialBody` (via `MeshPickingPlugin`, an `Observer` on `Pointer<Click>`) reassigns the orbit camera's target.
+- Added click-to-select: double-clicking a `CelestialBody` (via `MeshPickingPlugin`, an `Observer` on `Pointer<Click>`, with a `Local` debounce window to detect the second click) reassigns the orbit camera's target.
 - Fixed a lighting bug: the star's `PointLight` would vanish whenever its small `Mesh3d` left the camera frustum, regardless of the light's `range`.
 
 Learned
@@ -53,8 +53,9 @@ Learned
 - `check_visibility` (`bevy_camera`) computes frustum culling from a single shared `Aabb` per entity. An entity that combines a small `Mesh3d` with a `PointLight` gets culled as a whole once the mesh leaves the frustum -- the light's own `range` never enters into that test.
 - First attempt at a fix, `NoFrustumCulling` on the combined mesh+light entity, traded one bug for another: `Aabb` (per its own doc) is only added to entities that lack `NoFrustumCulling`, and Bevy's mesh-picking ray cast (`MeshRayCast`) requires `Read<Aabb>` (not optional) to even consider an entity -- so the star stopped being clickable, even while clearly on screen. The actual fix was to stop sharing one entity for two different concerns: the light now lives on its own child entity (`ChildOf`) with no mesh, so it never gets an `Aabb` in the first place and is never culled, while the visual mesh entity keeps its normal `Aabb` and stays pickable.
 - `Option::insert` always overwrites and returns a `&mut T` (`#[must_use]`, suggesting plain assignment if that reference is unused); `Option::get_or_insert` only fills an empty option and is the idiomatic one-liner for "default if absent".
+- Bevy's `Pointer<E>` events (picking) auto-propagate up the entity hierarchy to the window by default. A global `Observer` (`app.add_observer`) re-runs on every step of that bubbling, not just on the originally clicked entity -- this silently wiped a `Local` debounce state every time, since the propagated invocation (window entity) always failed the "is this a `CelestialBody`" check. `On::propagate(false)` stops the bubbling and fixes it for good, rather than special-casing the propagated invocation.
+- `Local<T>` state on an `Observer` persists correctly across triggers (the system is stored once on the `Observer` component and reused), so it is a legitimate place to keep small per-observer state like a double-click timer.
 
 Next
 
-- Switch from single-click to double-click for target selection (deliberately deferred to keep this session's scope smaller).
 - Start the procedural planet generation, or extend the star system (more bodies, moons).
