@@ -1,5 +1,21 @@
 use bevy::prelude::*;
 
+#[derive(Resource)]
+pub(crate) struct SystemBodies {
+    pub(crate) star: Entity,
+}
+
+#[derive(Component)]
+pub(crate) struct CelestialBody {
+    pub(crate) radius: f32,
+}
+
+#[derive(Component)]
+struct Star;
+
+#[derive(Component)]
+struct Planet;
+
 #[derive(Component)]
 struct Orbital {
     radius: f32,
@@ -34,31 +50,45 @@ fn spawn_system(
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     // star
-    commands.spawn((
-        Mesh3d(meshes.add(Sphere::new(1.0))),
-        MeshMaterial3d(materials.add(StandardMaterial {
-            emissive: Color::WHITE.into(),
-            ..default()
-        })),
-        PointLight {
-            intensity: 1e6,
-            range: 10.0,
-            shadows_enabled: true,
-            ..default()
-        },
-        Spin {
-            angular_speed: 1.0,
-            axis: Dir3::Y,
-        },
-    ));
+    let star_radius = 1.0;
+    let star_entity = commands
+        .spawn((
+            Mesh3d(meshes.add(Sphere::new(star_radius))),
+            MeshMaterial3d(materials.add(StandardMaterial {
+                emissive: Color::WHITE.into(),
+                ..default()
+            })),
+            CelestialBody {
+                radius: star_radius,
+            },
+            Star,
+            PointLight {
+                intensity: 1e6,
+                range: 10.0,
+                shadows_enabled: true,
+                ..default()
+            },
+            Spin {
+                angular_speed: 1.0,
+                axis: Dir3::Y,
+            },
+        ))
+        .id();
+
+    commands.insert_resource(SystemBodies { star: star_entity });
 
     // planet
+    let planet_radius = 0.5;
     commands.spawn((
-        Mesh3d(meshes.add(Sphere::new(0.5))),
+        Mesh3d(meshes.add(Sphere::new(planet_radius))),
         MeshMaterial3d(materials.add(StandardMaterial {
             base_color: Srgba::rgb(0.0, 0.0, 1.0).into(),
             ..default()
         })),
+        CelestialBody {
+            radius: planet_radius,
+        },
+        Planet,
         Orbital {
             radius: 6.0,
             angular_speed: 0.25,

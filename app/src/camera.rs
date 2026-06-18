@@ -1,3 +1,4 @@
+use crate::star_system::{CelestialBody, SystemBodies};
 use bevy::{
     input::mouse::{MouseMotion, MouseWheel},
     prelude::*,
@@ -6,23 +7,36 @@ use bevy::{
 use std::f32::consts::FRAC_PI_4;
 
 const MOUSE_SENSITIVITY: f32 = 0.01;
+const MIN_CAMERA_DISTANCE: f32 = 2.0;
+const MAX_CAMERA_DISTANCE: f32 = 16.0;
 
 #[derive(Component)]
 struct OrbitCamera {
     radius: f32,
     azimuth: f32,
     elevation: f32,
+    target: Option<Entity>,
 }
 
 fn spawn_orbit_camera(mut commands: Commands) {
     commands.spawn((
         Camera3d::default(),
         OrbitCamera {
-            radius: 12.0,
+            radius: 6.0,
             azimuth: 0.0,
             elevation: 0.0,
+            target: None,
         },
     ));
+}
+
+fn bind_orbit_camera_target(
+    mut cameras: Query<&mut OrbitCamera>,
+    system_bodies: Res<SystemBodies>,
+) {
+    for mut orbit_camera in &mut cameras {
+        orbit_camera.target.get_or_insert(system_bodies.star);
+    }
 }
 
 fn grab_cursor_on_mmb(
@@ -43,11 +57,11 @@ fn grab_cursor_on_mmb(
 fn drag_orbit_camera(
     buttons: Res<ButtonInput<MouseButton>>,
     mut evr_motion: MessageReader<MouseMotion>,
-    mut query: Query<&mut OrbitCamera>,
+    mut cameras: Query<&mut OrbitCamera>,
 ) {
     for ev in evr_motion.read() {
         if buttons.pressed(MouseButton::Middle) {
-            for mut orbit_camera in &mut query {
+            for mut orbit_camera in &mut cameras {
                 orbit_camera.azimuth += ev.delta.x * MOUSE_SENSITIVITY;
                 orbit_camera.elevation += ev.delta.y * MOUSE_SENSITIVITY;
                 orbit_camera.elevation = orbit_camera.elevation.clamp(-FRAC_PI_4, FRAC_PI_4);
@@ -58,33 +72,54 @@ fn drag_orbit_camera(
 
 fn zoom_orbit_camera(
     mut evr_scroll: MessageReader<MouseWheel>,
-    mut query: Query<&mut OrbitCamera>,
+    mut cameras: Query<&mut OrbitCamera>,
+    bodies: Query<&CelestialBody>,
 ) {
     use bevy::input::mouse::MouseScrollUnit;
+
     for ev in evr_scroll.read() {
-        match ev.unit {
-            MouseScrollUnit::Line => {
-                for mut orbit_camera in &mut query {
-                    orbit_camera.radius -= ev.y;
-                }
-            }
-            MouseScrollUnit::Pixel => {
-                for mut orbit_camera in &mut query {
-                    orbit_camera.radius -= ev.y;
-                }
-            }
+        for mut orbit_camera in &mut cameras {
+            let Some(camera_target) = orbit_camera.target else {
+                continue;
+            };
+            let Ok(body) = bodies.get(camera_target) else {
+                continue;
+            };
+
+            // scroll wheel and trackpad treatment similar for now
+            let delta = match ev.unit {
+                MouseScrollUnit::Line => ev.y,
+                MouseScrollUnit::Pixel => ev.y,
+            };
+
+            orbit_camera.radius = (orbit_camera.radius - delta).clamp(
+                body.radius + MIN_CAMERA_DISTANCE,
+                body.radius + MAX_CAMERA_DISTANCE,
+            );
         }
     }
 }
 
-fn sync_orbit_camera_transform(mut query: Query<(&mut Transform, &OrbitCamera)>) {
-    for (mut transform, orbit_camera) in &mut query {
-        let x = orbit_camera.radius * orbit_camera.elevation.cos() * orbit_camera.azimuth.sin();
-        let y = orbit_camera.radius * orbit_camera.elevation.sin();
-        let z = orbit_camera.radius * orbit_camera.elevation.cos() * orbit_camera.azimuth.cos();
+fn sync_orbit_camera_transform(
+    mut cameras: Query<(&mut Transform, &OrbitCamera)>,
+    bodies: Query<&Transform, (With<CelestialBody>, Without<OrbitCamera>)>,
+) {
+    for (mut transform, orbit_camera) in &mut cameras {
+        let Some(camera_target) = orbit_camera.target else {
+            continue;
+        };
+        let Ok(body_transform) = bodies.get(camera_target) else {
+            continue;
+        };
+
+        let x = (orbit_camera.radius * orbit_camera.elevation.cos() * orbit_camera.azimuth.sin())
+            + body_transform.translation.x;
+        let y = (orbit_camera.radius * orbit_camera.elevation.sin()) + body_transform.translation.y;
+        let z = (orbit_camera.radius * orbit_camera.elevation.cos() * orbit_camera.azimuth.cos())
+            + body_transform.translation.z;
 
         transform.translation = Vec3::new(x, y, z);
-        transform.look_at(Vec3::ZERO, Vec3::Y);
+        transform.look_at(body_transform.translation, Vec3::Y);
     }
 }
 
@@ -95,6 +130,7 @@ impl Plugin for CameraPlugin {
         app.add_systems(Startup, spawn_orbit_camera).add_systems(
             Update,
             (
+                bind_orbit_camera_target,
                 grab_cursor_on_mmb,
                 drag_orbit_camera,
                 zoom_orbit_camera,
