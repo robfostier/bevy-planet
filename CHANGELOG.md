@@ -14,7 +14,7 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), ver
 
 ### Fixed
 
-- The star's point light no longer disappears when its small mesh leaves the camera's view frustum (it previously did, regardless of the light's range, because mesh and light shared a single frustum-culling bounding box on the same entity).
+- The star's point light no longer disappears when its small mesh leaves the camera's view frustum (it previously did, regardless of the light's range, because mesh and light shared a single frustum-culling bounding box on the same entity). The light now lives on its own child entity with no mesh, so it is never subject to that culling check in the first place.
 
 ## [0.1.0] -- planned
 

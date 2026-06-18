@@ -48,9 +48,10 @@ Done
 
 Learned
 
-- Bevy's required components (`#[require(...)]` on a `#[derive(Component)]`) let one component pull in another's default automatically (`CelestialBody` -> `Pickable`, `Star` -> `NoFrustumCulling`) without repeating it at every spawn site -- and an explicit value provided at spawn always overrides the required default.
+- Bevy's required components (`#[require(...)]` on a `#[derive(Component)]`) let one component pull in another's default automatically (`CelestialBody` -> `Pickable`) without repeating it at every spawn site -- and an explicit value provided at spawn always overrides the required default.
 - Two `Query`s in the same system that both touch the same component type (one mutably) must be provably disjoint to Bevy, via `With`/`Without` filters -- two different required components are not enough on their own; Bevy needs an explicit `Without<T>` to prove it (confirmed by hitting error `B0001` before adding the filter).
-- `check_visibility` (`bevy_camera`) computes frustum culling from a single shared `Aabb` per entity. An entity that combines a small `Mesh3d` with a `PointLight` gets culled as a whole once the mesh leaves the frustum -- the light's own `range` never enters into that test. `NoFrustumCulling` on the entity skips the test entirely, which is an acceptable trade-off for a single small emissive sphere.
+- `check_visibility` (`bevy_camera`) computes frustum culling from a single shared `Aabb` per entity. An entity that combines a small `Mesh3d` with a `PointLight` gets culled as a whole once the mesh leaves the frustum -- the light's own `range` never enters into that test.
+- First attempt at a fix, `NoFrustumCulling` on the combined mesh+light entity, traded one bug for another: `Aabb` (per its own doc) is only added to entities that lack `NoFrustumCulling`, and Bevy's mesh-picking ray cast (`MeshRayCast`) requires `Read<Aabb>` (not optional) to even consider an entity -- so the star stopped being clickable, even while clearly on screen. The actual fix was to stop sharing one entity for two different concerns: the light now lives on its own child entity (`ChildOf`) with no mesh, so it never gets an `Aabb` in the first place and is never culled, while the visual mesh entity keeps its normal `Aabb` and stays pickable.
 - `Option::insert` always overwrites and returns a `&mut T` (`#[must_use]`, suggesting plain assignment if that reference is unused); `Option::get_or_insert` only fills an empty option and is the idiomatic one-liner for "default if absent".
 
 Next

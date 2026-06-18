@@ -33,8 +33,8 @@ Explore a procedurally generated planet at two scales:
 
 1. DONE A window opens.
 2. DONE A lit sphere is visible in 3D.
-3. TODO The sphere becomes a low-res procedural planet.
-4. TODO You can rotate around it (orbital view).
+3. DONE You can rotate around it (orbital view).
+4. TODO The sphere becomes a low-res procedural planet.
 5. TODO You can "enter": switch to first-person on the surface.
 6. TODO The surface terrain is consistent with the orbital view.
 

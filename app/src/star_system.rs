@@ -1,4 +1,4 @@
-use bevy::{camera::visibility::NoFrustumCulling, prelude::*};
+use bevy::prelude::*;
 
 #[derive(Resource)]
 pub(crate) struct SystemBodies {
@@ -12,7 +12,6 @@ pub(crate) struct CelestialBody {
 }
 
 #[derive(Component)]
-#[require(NoFrustumCulling)]
 struct Star;
 
 #[derive(Component)]
@@ -64,12 +63,6 @@ fn spawn_system(
                 radius: star_radius,
             },
             Star,
-            PointLight {
-                intensity: 1e6,
-                range: 10.0,
-                shadows_enabled: true,
-                ..default()
-            },
             Spin {
                 angular_speed: 1.0,
                 axis: Dir3::Y,
@@ -78,6 +71,16 @@ fn spawn_system(
         .id();
 
     commands.insert_resource(SystemBodies { star: star_entity });
+
+    commands.spawn((
+        ChildOf(star_entity),
+        PointLight {
+            intensity: 1e6,
+            range: 10.0,
+            shadows_enabled: true,
+            ..default()
+        },
+    ));
 
     // planet
     let planet_radius = 0.5;
