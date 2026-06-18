@@ -24,10 +24,17 @@ The code lives in `app/` (package `bevy-planet`): a library crate (`bevy_planet`
 | Module / domain     | Role                                                                   |
 |---------------------|------------------------------------------------------------------------|
 | `star_system` (mvp) | Central star (light) + orbiting/spinning bodies, as `StarSystemPlugin` |
+| `camera` (mvp)      | Orbit camera, as `CameraPlugin`; submodules below                      |
+| `camera::input`     | Continuous per-frame input: drag to rotate, scroll to zoom             |
+| `camera::picking`   | Click-to-select: double-click switches target, starts a transition     |
+| `camera::sync`      | Applies `OrbitCamera` state to the `Transform` each frame              |
+| `utils`             | Small standalone helpers (currently: easing functions)                |
 | (to define)         | Procedural generation (source of truth)                                |
 | (to define)         | Orbital view (whole planet, low-res)                                   |
 | (to define)         | First-person view (surface, high-res)                                  |
 | (to define)         | Mapping between coordinate systems                                     |
+
+`camera` only holds the shared state (`OrbitCamera`, `CameraTransition`) and the `Plugin`; each submodule covers a distinct kind of concern (continuous input with no state machine, versus an event-driven `Observer` with a debounce state machine, versus per-frame `Transform` sync) rather than being split by raw line count. The orbit camera and a future ground/first-person camera are deliberately not pre-organised around a shared abstraction yet -- the ground camera's actual shape is still unknown, so that decomposition is deferred to when that work actually starts.
 
 ## The two scales and the coordinate mapping
 
@@ -58,6 +65,8 @@ This is pure computation: to be covered by unit tests.
 | 2026-06-16 | Bevy 0.18, Rust edition 2024                     | Latest stable versions          |
 | 2026-06-16 | `dynamic_linking` in dev only                    | Fast recompiles                 |
 | 2026-06-16 | Deps at `opt-level=3`, our code at `opt-level=1` | Fast dev build + smooth runtime |
+| 2026-06-18 | Target switches animate (position and look-at eased together, one shared `Timer`) | Avoid an instant, jarring snap when the orbit camera's target changes |
+| 2026-06-18 | `camera.rs` split into `camera/{input,picking,sync}.rs` | Single file had grown past 200 lines, mixing distinct concerns |
 
 ## Known issues / environment
 

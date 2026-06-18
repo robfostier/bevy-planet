@@ -29,6 +29,8 @@ Explore a procedurally generated planet at two scales:
 | Zoom in / out               | Mouse wheel                  | MVP    |
 | Switch the camera's target  | Double left click on a body  | DONE   |
 
+> Switching target is not an instant cut: the camera glides smoothly from its previous position and orientation to the new target, and its distance resets to a default zoom level as part of the same motion.
+
 ## Target journey (milestones)
 
 1. DONE A window opens.

@@ -10,6 +10,7 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), ver
 - Animated star system (`StarSystemPlugin`): a central emissive star with a point light, plus a planet that orbits it (position derived from elapsed time) and spins on its own axis.
 - Orbit camera (`CameraPlugin`): middle-mouse drag rotates around its target body (azimuth/elevation, elevation clamped to avoid flipping over the poles), scroll wheel zooms in and out within bounds derived from the target's radius, cursor is grabbed and hidden while dragging. The camera tracks the target's actual position, so it keeps following a body that moves (for example the orbiting planet). Defaults to the system's star, exposed by `StarSystemPlugin` through a small `SystemBodies` resource so the two plugins stay decoupled from each other's internal types.
 - Click-to-select: double-clicking a celestial body (star or planet) switches the orbit camera's target to it, using Bevy's mesh picking backend.
+- Animated target switching: the orbit camera now glides its position and look-at point smoothly to the new target (sine ease-in-out, shared timer) instead of snapping instantly, and resets its zoom to a default distance as part of the same motion.
 - Library/binary split: game logic lives in a library crate (`bevy_planet`) exposed as Bevy plugins; the binary is a thin launcher.
 
 ### Fixed

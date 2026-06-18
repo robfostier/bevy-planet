@@ -56,6 +56,20 @@ Learned
 - Bevy's `Pointer<E>` events (picking) auto-propagate up the entity hierarchy to the window by default. A global `Observer` (`app.add_observer`) re-runs on every step of that bubbling, not just on the originally clicked entity -- this silently wiped a `Local` debounce state every time, since the propagated invocation (window entity) always failed the "is this a `CelestialBody`" check. `On::propagate(false)` stops the bubbling and fixes it for good, rather than special-casing the propagated invocation.
 - `Local<T>` state on an `Observer` persists correctly across triggers (the system is stored once on the `Observer` component and reused), so it is a legitimate place to keep small per-observer state like a double-click timer.
 
+Done (continued)
+
+- Animated target switching: the orbit camera now glides position and look-at point smoothly to a newly picked target (sine ease-in-out over a fixed duration) instead of snapping instantly, and its zoom resets to a default distance as part of the same motion.
+- Split `camera.rs` (past 200 lines) into `camera.rs` (shared state, `Plugin`) plus `camera/input.rs`, `camera/picking.rs`, `camera/sync.rs`, grouped by kind of concern rather than by size.
+- Added inline (`///`/`//!`) documentation across the camera module and `utils.rs`.
+
+Learned (continued)
+
+- One shared `Timer` can drive several interpolated values (position, look-at) at once, as long as they belong to the same transition -- no need for one timer per animated field. Bundling the timer with the values it drives into a single struct (`CameraTransition`) avoided several parallel `Option`-ish fields on `OrbitCamera` that had to be kept in sync by hand.
+- `Transform::look_at` reads the transform's *current* translation to compute the rotation -- calling it before assigning the frame's new `translation` silently rotates the camera based on the previous frame's position, lagging one frame behind. Order matters: assign translation first, then `look_at`.
+- A `Mut<T>` (the type yielded by iterating `&mut query`) is not a plain `&mut T`: each field access goes through a separate `Deref`/`DerefMut` call, so the borrow checker can fail to see two of its fields as disjoint even though they are. Reading the needed value out into a local *before* taking a `&mut` borrow on a different field sidesteps it.
+- A private item is visible from the module it is defined in *and all of that module's descendants* -- so splitting a file into child submodules needs no visibility changes on the parent's types/constants; only the reverse direction (child exposing something to its parent) needs `pub(super)`.
+- Process note: the tutor wrote directly into `app/src/**` twice this session, by explicit, repeated request of the learner (a large mechanical refactor, and a doc-comment pass blocked by a copy-paste limitation in the learner's terminal) -- both were one-off exceptions to the project's pedagogical contract, not a change to it.
+
 Next
 
 - Start the procedural planet generation, or extend the star system (more bodies, moons).
