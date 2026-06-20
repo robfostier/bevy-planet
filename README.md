@@ -1,6 +1,6 @@
 # bevy-planet
 
-A Rust + [Bevy](https://bevyengine.org) 0.18 game exploring procedural planet generation at two linked scales.
+A Rust + [Bevy](https://bevyengine.org) 0.19 game exploring procedural planet generation at two linked scales.
 
 > LEARNING project. The code is written by the learner; a tutor agent (`.claude/agents/tutor.md`) guides, documents and watches over quality, but never codes in his place.
 

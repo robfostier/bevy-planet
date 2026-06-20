@@ -1,6 +1,6 @@
 # bevy-planet -- Project context
 
-A Rust + Bevy 0.18 game: a procedural planet in a 3D scene, observable at two linked scales connected by a coordinate mapping:
+A Rust + Bevy 0.19 game: a procedural planet in a 3D scene, observable at two linked scales connected by a coordinate mapping:
 
 - Orbital view: the whole planet, "low-res".
 - First-person view: on the surface, with a high density of detail, following the SAME procedural generation rules (single source of truth).

@@ -1,7 +1,8 @@
-use bevy::ecs::schedule::{LogLevel, ScheduleBuildSettings};
-use bevy::prelude::*;
-use bevy_planet::camera::CameraPlugin;
-use bevy_planet::star_system::StarSystemPlugin;
+use bevy::{
+    ecs::schedule::{LogLevel, ScheduleBuildSettings},
+    prelude::*,
+};
+use bevy_planet::{camera::CameraPlugin, star_system::StarSystemPlugin};
 
 fn main() -> AppExit {
     App::new()
