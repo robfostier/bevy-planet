@@ -73,3 +73,25 @@ Learned (continued)
 Next
 
 - Start the procedural planet generation, or extend the star system (more bodies, moons).
+
+## 2026-06-20 -- Bevy 0.19 migration
+
+Done
+
+- Upgraded from Bevy 0.18.1 to 0.19.
+- Fixed the one compile break: `PointLight::shadows_enabled` renamed to `shadow_maps_enabled` (Bevy 0.19 also split off a separate `contact_shadows_enabled`).
+- Fixed two runtime regressions surfaced only after the upgrade: the star's light going dark on zoom-out, and the orbit camera's target visibly jittering.
+- Enabled the `debug` Bevy Cargo feature and `ambiguity_detection: LogLevel::Warn` on the `Update` schedule, to name conflicting systems directly in the warning instead of guessing from symptoms.
+
+Learned
+
+- In Bevy 0.19, resources are now backed by singleton entity components internally; existing `Res`/`ResMut` system parameters keep working unchanged, the new representation mainly unlocks resource-side relationships and resource queries this project does not use yet.
+- `ClusterConfig::Single` always resolves to `ClusterFarZMode::MaxClusterableObjectRange`, which as of 0.19 is computed from the previous frame's farthest visible clusterable object instead of the current frame's. A fast camera zoom can outrun that one-frame lag and push a light outside the cluster's far bound, after which the lagging estimate never grows back since the light is no longer there to extend it. For a scene with only a handful of lights, clustering is not needed at all; removing the `ClusterConfig` component entirely sidesteps the whole mechanism.
+- Bevy's scheduler does not order two systems that touch the same component type unless told to, even across separate `Plugin`s -- they can run in either order from one frame to the next, and which order happens to "win" can change between engine versions as the scheduler's parallelism changes. This had apparently been incidentally stable under 0.18 and became visible jitter under 0.19's more aggressive parallel execution.
+- `ScheduleBuildSettings`/`LogLevel` (ambiguity detection) live in `bevy::ecs::schedule`, not the prelude; the conflicting systems' real names only show up in the warning once the crate's `debug` Cargo feature is enabled.
+- A `SystemSet` (`#[derive(SystemSet)]`) lets one `Plugin` order its systems relative to another `Plugin`'s private systems, by labeling a group of systems with a public marker type instead of exposing the systems themselves.
+- Cross-plugin ordering reads more cleanly declared inside the `Plugin` that has the actual dependency (here, `CameraPlugin`, which already imports `star_system::SystemBodies`) than at the app-composition level in `main.rs`, since that plugin is already the one coupled to the other's data.
+
+Next
+
+- Resume work on the procedural planet generation, or extend the star system further, now back on Bevy 0.19.

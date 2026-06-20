@@ -8,8 +8,8 @@ mod input;
 mod picking;
 mod sync;
 
-use crate::star_system::SystemBodies;
-use bevy::{light::cluster::ClusterConfig, prelude::*};
+use crate::star_system::{StarSystemSet, SystemBodies};
+use bevy::prelude::*;
 use std::time::Duration;
 
 /// Radians of orbit per pixel of mouse motion while dragging.
@@ -60,7 +60,6 @@ struct OrbitCamera {
 fn spawn_orbit_camera(mut commands: Commands) {
     commands.spawn((
         Camera3d::default(),
-        ClusterConfig::Single,
         MeshPickingCamera,
         OrbitCamera {
             radius: DEFAULT_CAMERA_RADIUS,
@@ -106,7 +105,8 @@ impl Plugin for CameraPlugin {
                     input::zoom_orbit_camera,
                     sync::sync_orbit_camera_transform,
                 )
-                    .chain(),
+                    .chain()
+                    .after(StarSystemSet),
             );
     }
 }

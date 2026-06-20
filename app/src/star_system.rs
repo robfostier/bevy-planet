@@ -77,7 +77,7 @@ fn spawn_system(
         PointLight {
             intensity: 1e6,
             range: 10.0,
-            shadows_enabled: true,
+            shadow_maps_enabled: true,
             ..default()
         },
     ));
@@ -106,11 +106,16 @@ fn spawn_system(
     ));
 }
 
+#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
+pub(crate) struct StarSystemSet;
+
 pub struct StarSystemPlugin;
 
 impl Plugin for StarSystemPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, (update_orbital, update_spin))
-            .add_systems(Startup, spawn_system);
+        app.add_systems(Startup, spawn_system).add_systems(
+            Update,
+            (update_orbital, update_spin).chain().in_set(StarSystemSet),
+        );
     }
 }
