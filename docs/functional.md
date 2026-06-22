@@ -21,18 +21,22 @@ Explore a procedurally generated planet at two scales:
 
 - A mechanism (to define) switches from orbit to surface and back.
 
-## Controls (to define)
+## Controls
 
-| Action      | Key | Status |
-|-------------|-----|--------|
-| (to define) | --  | TODO   |
+| Action                      | Key                          | Status |
+|-----------------------------|------------------------------|--------|
+| Orbit the camera            | Middle mouse + drag          | DONE   |
+| Zoom in / out               | Mouse wheel                  | MVP    |
+| Switch the camera's target  | Double left click on a body  | DONE   |
+
+> Switching target is not an instant cut: the camera glides smoothly from its previous position and orientation to the new target, and its distance resets to a default zoom level as part of the same motion.
 
 ## Target journey (milestones)
 
 1. DONE A window opens.
 2. DONE A lit sphere is visible in 3D.
-3. TODO The sphere becomes a low-res procedural planet.
-4. TODO You can rotate around it (orbital view).
+3. DONE You can rotate around it (orbital view).
+4. TODO The sphere becomes a low-res procedural planet.
 5. TODO You can "enter": switch to first-person on the surface.
 6. TODO The surface terrain is consistent with the orbital view.
 

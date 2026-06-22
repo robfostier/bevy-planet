@@ -1,6 +1,6 @@
 # bevy-planet
 
-A Rust + [Bevy](https://bevyengine.org) 0.18 game exploring procedural planet generation at two linked scales.
+A Rust + [Bevy](https://bevyengine.org) 0.19 game exploring procedural planet generation at two linked scales.
 
 > LEARNING project. The code is written by the learner; a tutor agent (`.claude/agents/tutor.md`) guides, documents and watches over quality, but never codes in his place.
 
@@ -17,7 +17,7 @@ Bootstrapping -- scaffolding in place. See `CHANGELOG.md`.
 ## Requirements
 
 - Rust >= 1.96 (`rustc`, `cargo`) -- developed on the latest stable
-- System dependencies, plus `clang` + `lld` (the build links with `lld` via `app/.cargo/config.toml`) on Linux/WSL Ubuntu 24.04:
+- System dependencies, plus `clang` + `lld` (the build links with `lld` via `app/.cargo/config.toml`) on Linux Ubuntu 24.04+:
 
   ```bash
   sudo apt install -y libwayland-dev libxkbcommon-dev libasound2-dev libudev-dev libx11-dev clang lld
