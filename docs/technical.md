@@ -22,18 +22,19 @@ The code lives in `app/` (package `bevy-planet`): a library crate (`bevy_planet`
 
 ### Envisioned modules (to be confirmed in practice)
 
-| Module / domain     | Role                                                                   |
-|---------------------|------------------------------------------------------------------------|
-| `star_system` (mvp) | Central star (light) + orbiting/spinning bodies, as `StarSystemPlugin` |
-| `camera` (mvp)      | Orbit camera, as `CameraPlugin`; submodules below                      |
-| `camera::input`     | Continuous per-frame input: drag to rotate, scroll to zoom             |
-| `camera::picking`   | Click-to-select: double-click switches target, starts a transition     |
-| `camera::sync`      | Applies `OrbitCamera` state to the `Transform` each frame              |
-| `utils`             | Small standalone helpers (currently: easing functions)                 |
-| (to define)         | Procedural generation (source of truth)                                |
-| (to define)         | Orbital view (whole planet, low-res)                                   |
-| (to define)         | First-person view (surface, high-res)                                  |
-| (to define)         | Mapping between coordinate systems                                     |
+| Module / domain     | Role                                                                    |
+|---------------------|-------------------------------------------------------------------------|
+| `star_system` (mvp) | Central star (light) + orbiting/spinning bodies, as `StarSystemPlugin`  |
+| `camera` (mvp)      | Orbit camera, as `CameraPlugin`; submodules below                       |
+| `camera::input`     | Continuous per-frame input: drag to rotate, scroll to zoom              |
+| `camera::picking`   | Click-to-select: double-click switches target, starts a transition      |
+| `camera::sync`      | Applies `OrbitCamera` state to the `Transform` each frame               |
+| `skybox` (mvp)      | Procedural nebula cubemap for the `Skybox`, built from FBM Perlin noise |
+| `utils`             | Small standalone helpers (currently: easing functions)                  |
+| (to define)         | Procedural generation (source of truth)                                 |
+| (to define)         | Orbital view (whole planet, low-res)                                    |
+| (to define)         | First-person view (surface, high-res)                                   |
+| (to define)         | Mapping between coordinate systems                                      |
 
 `camera` only holds the shared state (`OrbitCamera`, `CameraTransition`) and the `Plugin`; each submodule covers a distinct kind of concern (continuous input with no state machine, versus an event-driven `Observer` with a debounce state machine, versus per-frame `Transform` sync) rather than being split by raw line count. The orbit camera and a future ground/first-person camera are deliberately not pre-organised around a shared abstraction yet -- the ground camera's actual shape is still unknown, so that decomposition is deferred to when that work actually starts.
 
@@ -72,6 +73,11 @@ This is pure computation: to be covered by unit tests.
 | 2026-06-20 | Removed `ClusterConfig::Single` (no clustering)                                   | Far-Z bound lagged a frame in 0.19, could leave the star unlit        |
 | 2026-06-20 | `StarSystemSet` orders movement before camera sync                                | Fixed a `Transform` race causing camera jitter                        |
 | 2026-06-20 | `ambiguity_detection: Warn` enabled permanently                                   | Catch future ordering conflicts early                                 |
+| 2026-06-22 | `Hdr` + `Bloom` + `Tonemapping::TonyMcMapface` on the orbit camera                | Realistic star bloom/exposure for the PBR pass                        |
+| 2026-06-22 | Star/planet scale retuned (star 2.0, planet 0.25, orbit 8.6)                      | Stay readable at the new exposure/bloom settings                      |
+| 2026-06-24 | Procedural cubemap `Skybox` (CPU, FBM Perlin noise), not a loaded HDRI            | Wanted a primordial-nebula look, no matching off-the-shelf asset      |
+| 2026-06-24 | `face_uv_to_direction` uses the OpenGL/Vulkan cube-face formula directly          | `CUBE_MAP_FACES`'s `looking_at`-derived basis mismatched face winding |
+| 2026-06-24 | Skybox content Z-mirrored before writing                                          | Compensates `skybox.wgsl`'s own Z-negation at sample time             |
 
 ## Known issues / environment
 

@@ -11,6 +11,7 @@ Explore a procedurally generated planet at two scales:
 - The whole planet floats in space, lit by a star.
 - The player can observe it and rotate it.
 - "Low-res" rendering: the silhouette and the large structures (continents, major relief) are readable, without the fine detail.
+- The backdrop is a procedurally generated nebula sky (soft drifting gas clouds), not a fixed image, and the star blooms realistically against it.
 
 ### 2. First-person view
 

@@ -95,3 +95,37 @@ Learned
 Next
 
 - Resume work on the procedural planet generation, or extend the star system further, now back on Bevy 0.19.
+
+## 2026-06-22 -- HDR pipeline
+
+Done
+
+- Added `Hdr`, `Exposure`, `Tonemapping::TonyMcMapface` and `Bloom` to the orbit camera.
+- Retuned the star/planet/orbit scale and lighting for the new exposure settings: star radius 2.0 with a warm emissive tint and a point light intensity of 9e7; planet radius 0.25 with a rough, non-metallic material; orbit radius 8.6.
+
+Learned
+
+- `Exposure::ev100` sets photometric exposure (`exposure() = exp2(-ev100) / 1.2`); raising it dims the whole scene multiplicatively, so emissive/light intensities need recalibrating together with it rather than in isolation.
+- `LinearRgba` and `Srgba` both get `Mul<f32>` from a shared `impl_componentwise_vector_space!` macro, not a per-type derive -- that is how `Srgba::rgb(..) * 10.0` compiles for a brighter emissive color.
+
+Next
+
+- Replace starfield HDRI texture asset with procedurally generated "primordial soup" Skybox
+
+## 2026-06-24 -- Procedural nebula skybox
+
+Done
+
+- Added a `Skybox` driven by a CPU-generated 6-face cubemap (`skybox.rs`) sampling an `Fbm<Perlin>` noise field.
+- Diagnosed and fixed a visible mirrored seam between the skybox's top/bottom faces and their neighbors.
+
+Learned
+
+- Bevy's `CUBE_MAP_FACES` `target`/`up` pairs are calibrated for rendering through a real camera, which has its own handedness corrections elsewhere in the pipeline. Deriving a basis from them via `Transform::looking_at` for direct CPU pixel writing does not guarantee adjacent faces share the same u/v winding direction -- two faces can each be internally self-consistent yet connect to each other mirrored, which produces no detectable value discontinuity (so screenshot pixel-diffing found nothing) while still looking visibly "flipped" to the eye. The fix was to implement the direction formula directly from the OpenGL/Vulkan cube-face-selection spec that Bevy's own source comment cites, instead of going through `looking_at`.
+- `skybox.wgsl`'s fragment shader negates the Z component of the sampling ray to account for cubemaps' left-handed convention -- a second, independent handedness correction that has to be mirrored into the generated content as well, separate from the face/u/v formula above.
+
+Next
+
+- Replace the skybox's debug direction-colors with the real palette driven by `nebula_density`, then layer domain warping and a sparse star field.
+- Wire up `bevy-inspector-egui`'s `ResourceInspectorPlugin` for live tuning of the nebula parameters.
+- Resume after that: procedural planet generation, the project's core milestone.

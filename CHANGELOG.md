@@ -12,10 +12,13 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), ver
 - Click-to-select: double-clicking a celestial body (star or planet) switches the orbit camera's target to it, using Bevy's mesh picking backend.
 - Animated target switching: the orbit camera now glides its position and look-at point smoothly to the new target (sine ease-in-out, shared timer) instead of snapping instantly, and resets its zoom to a default distance as part of the same motion.
 - Library/binary split: game logic lives in a library crate (`bevy_planet`) exposed as Bevy plugins; the binary is a thin launcher.
+- HDR rendering pipeline on the orbit camera: `Hdr`, photometric `Exposure`, `TonyMcMapface` tonemapping, and `Bloom`, as the first step of a PBR/visual-realism pass.
+- Procedural nebula skybox (`skybox.rs`): a 6-face cubemap generated on the CPU from an `Fbm<Perlin>` noise field, in place of a loaded HDRI.
 
 ### Changed
 
 - Upgraded from Bevy 0.18.1 to 0.19.
+- Retuned the star/planet/orbit scale and the star's emissive color/point light intensity for the new exposure settings.
 
 ### Fixed
 
