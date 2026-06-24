@@ -8,8 +8,16 @@ mod input;
 mod picking;
 mod sync;
 
+use crate::skybox::build_nebula_cubemap_image;
 use crate::star_system::{StarSystemSet, SystemBodies};
-use bevy::prelude::*;
+use bevy::{
+    camera::{Exposure, Hdr},
+    core_pipeline::tonemapping::Tonemapping,
+    light::Skybox,
+    post_process::bloom::Bloom,
+    prelude::*,
+};
+use noise::{Fbm, Perlin};
 use std::time::Duration;
 
 /// Radians of orbit per pixel of mouse motion while dragging.
@@ -23,9 +31,9 @@ const CAMERA_ANIMATION_DURATION: Duration = Duration::from_millis(1500);
 /// Orbit radius the camera resets to whenever it switches target.
 const DEFAULT_CAMERA_RADIUS: f32 = 4.0;
 /// Closest the camera is allowed to zoom in, added to the target's own radius.
-const MIN_CAMERA_DISTANCE: f32 = 2.0;
+const MIN_CAMERA_DISTANCE: f32 = 1.0;
 /// Furthest the camera is allowed to zoom out, added to the target's own radius.
-const MAX_CAMERA_DISTANCE: f32 = 16.0;
+const MAX_CAMERA_DISTANCE: f32 = 24.0;
 
 /// In-progress glide from a previous camera position/orientation to the
 /// current target's, started whenever `OrbitCamera::target` changes.
@@ -57,7 +65,10 @@ struct OrbitCamera {
 
 /// Spawns the single orbit camera, with no target yet (assigned next frame
 /// by `bind_orbit_camera_target`).
-fn spawn_orbit_camera(mut commands: Commands) {
+fn spawn_orbit_camera(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
+    let noise = Fbm::<Perlin>::new(0);
+    let handle = images.add(build_nebula_cubemap_image(256, &noise, 2.0));
+
     commands.spawn((
         Camera3d::default(),
         MeshPickingCamera,
@@ -67,6 +78,19 @@ fn spawn_orbit_camera(mut commands: Commands) {
             elevation: 0.0,
             target: None,
             transition: None,
+        },
+        Hdr,
+        Exposure { ev100: 15.0 },
+        Tonemapping::TonyMcMapface,
+        Bloom {
+            high_pass_frequency: 0.4,
+            low_frequency_boost: 0.4,
+            ..default()
+        },
+        Skybox {
+            image: Some(handle),
+            brightness: 1e4,
+            ..default()
         },
     ));
 }

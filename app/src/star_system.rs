@@ -51,12 +51,12 @@ fn spawn_system(
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     // star
-    let star_radius = 1.0;
+    let star_radius = 2.0;
     let star_entity = commands
         .spawn((
             Mesh3d(meshes.add(Sphere::new(star_radius))),
             MeshMaterial3d(materials.add(StandardMaterial {
-                emissive: Color::WHITE.into(),
+                emissive: (Srgba::rgb(1.0, 0.95, 0.88) * 10.0).into(),
                 ..default()
             })),
             CelestialBody {
@@ -64,7 +64,7 @@ fn spawn_system(
             },
             Star,
             Spin {
-                angular_speed: 1.0,
+                angular_speed: 0.1,
                 axis: Dir3::Y,
             },
         ))
@@ -75,19 +75,21 @@ fn spawn_system(
     commands.spawn((
         ChildOf(star_entity),
         PointLight {
-            intensity: 1e6,
-            range: 10.0,
+            intensity: 9e7,
+            range: 50.0,
             shadow_maps_enabled: true,
             ..default()
         },
     ));
 
     // planet
-    let planet_radius = 0.5;
+    let planet_radius = 0.25;
     commands.spawn((
         Mesh3d(meshes.add(Sphere::new(planet_radius))),
         MeshMaterial3d(materials.add(StandardMaterial {
-            base_color: Srgba::rgb(0.0, 0.0, 1.0).into(),
+            base_color: Srgba::rgb(0.3, 0.25, 0.25).into(),
+            perceptual_roughness: 0.9,
+            metallic: 0.0,
             ..default()
         })),
         CelestialBody {
@@ -95,12 +97,12 @@ fn spawn_system(
         },
         Planet,
         Orbital {
-            radius: 6.0,
-            angular_speed: 0.25,
+            radius: 8.6,
+            angular_speed: 0.1,
             phase: 0.0,
         },
         Spin {
-            angular_speed: 2.0,
+            angular_speed: 0.1,
             axis: Dir3::Y,
         },
     ));
