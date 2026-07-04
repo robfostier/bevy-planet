@@ -130,15 +130,18 @@ Next
 - Wire up `bevy-inspector-egui`'s `ResourceInspectorPlugin` for live tuning of the nebula parameters.
 - Resume after that: procedural planet generation, the project's core milestone.
 
-## 2026-07-04 -- Live-tuning inspector for the nebula skybox
+## 2026-07-04 -- Nebula skybox: live inspector, dev tools, domain warping
 
 Done
 
-- Exposed the nebula's `seed` and `frequency` as a `SkyboxParams` resource, edited live through a `bevy-inspector-egui` panel.
+- Exposed the nebula's parameters as a `SkyboxParams` resource, edited live through a `bevy-inspector-egui` panel.
 - Moved the cubemap behind a shared `SkyboxCubemap` handle, reserved at plugin-build time via `FromWorld` and filled by a `rebuild_skybox_cubemap` system gated on `resource_changed::<SkyboxParams>` (so it also bakes once on startup).
 - Gave egui its own 2D overlay camera and disabled bevy_egui's automatic primary context, after a chain of rendering problems (see below).
-- Documented the previously bare skybox, star-system and inspector code inline.
 - Extracted all dev tooling out of `main.rs` into a `dev_tools` module (`DevToolsPlugin`), and replaced the per-resource quick inspector with a single custom "Dev Tools" egui window that draws collapsible sections via `bevy_inspector::ui_for_resource`.
+- Replaced the plain FBM density with a domain-warped field (after Inigo Quilez): a two-level displacement built from a smooth `warp` noise, then sampled by a detailed `density` noise -- turning blobs into swirling filaments.
+- Exposed full FBM controls (seed, frequency, octaves, lacunarity, persistence) per field via a nested `NoiseParams`, plus a `warp_strength`, all grouped behind a `NebulaField` generator built once per rebuild.
+- Split the growing `skybox.rs` into a `skybox/` module (`params`, `field`, `cubemap`), mirroring the `camera/` layout.
+- Documented the previously bare skybox, star-system and inspector code inline.
 
 Learned
 
@@ -149,8 +152,12 @@ Learned
 - Two cameras rendering to the same window only share the intermediate "main texture" when they agree on its format. That format is part of the texture-cache key in `prepare_view_targets`, and `Hdr` is what selects `Rgba16Float`. An HDR orbit camera plus a non-HDR overlay therefore get two separate textures, so the overlay's MSAA writeback reads an empty (black) texture and composites egui over black; giving the overlay a matching `Hdr` fixes it.
 - Reading the installed Bevy source directly (the cache key in `prepare_view_targets`, the writeback condition in `msaa_writeback`) is what finally pinned the black-screen cause, after several wrong guesses drawn from symptoms alone.
 - The quick `ResourceInspectorPlugin` silently bundles two things the manual `ui_for_resource` path does not: it `register_type`s the inspected type, and it adds `DefaultInspectorConfigPlugin` (which registers the `InspectorEguiImpl` egui widget for each standard type). Going manual, both become your job -- without them the panel first shows "not registered", then "u32 is #[reflect(opaque)], register an InspectorEguiImpl".
+- Domain warping needs the displacement components decorrelated by distinct constant offsets; sampling the same value for each component collapses the displacement onto the (1,1,1) diagonal -- a directional smear instead of a swirl.
+- The warp field and the density field want different settings (smooth vs detailed), which is why one shared `Fbm` is limiting: separate instances, each configured from its own `NoiseParams`, via the `MultiFractal` trait (`set_octaves`/`set_frequency`/`set_lacunarity`/`set_persistence`).
+- A CPU-baked cubemap is fundamentally softer than Inigo Quilez's per-pixel shader renders. Matching that crispness ultimately means moving the generation into the skybox fragment shader (WGSL), resolution-independent, rather than baking a low-res texture.
 
 Next
 
-- Replace the skybox's placeholder grayscale with the real nebula palette driven by `nebula_density`, then layer domain warping and a sparse star field.
-- Resume the project's core milestone: procedural planet generation.
+- Add the contrast/levels remap to carve black voids out of the mid-gray fog (the biggest remaining visual gap).
+- Then the palette (color), a ridged detail layer, and a star field.
+- Consider raising the bake resolution, or moving generation into `skybox.wgsl` for full sharpness.

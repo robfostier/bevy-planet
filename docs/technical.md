@@ -29,7 +29,10 @@ The code lives in `app/` (package `bevy-planet`): a library crate (`bevy_planet`
 | `camera::input`     | Continuous per-frame input: drag to rotate, scroll to zoom             |
 | `camera::picking`   | Click-to-select: double-click switches target, starts a transition     |
 | `camera::sync`      | Applies `OrbitCamera` state to the `Transform` each frame              |
-| `skybox` (mvp)      | Procedural nebula cubemap for the `Skybox` (FBM Perlin)                |
+| `skybox` (mvp)      | Procedural nebula cubemap for the `Skybox`; submodules below           |
+| `skybox::params`    | Tunable FBM knobs (`SkyboxParams`, `NoiseParams`)                      |
+| `skybox::field`     | Density generation: domain-warped FBM (`NebulaField`)                  |
+| `skybox::cubemap`   | Assembles the density field into a 6-face cubemap `Image`              |
 | `utils`             | Small standalone helpers (currently: easing functions)                 |
 | `dev_tools` (dev)   | Diagnostics + a single egui inspector window (live tuning)             |
 | (to define)         | Procedural generation (source of truth)                                |
@@ -85,6 +88,8 @@ This is pure computation: to be covered by unit tests.
 | 2026-07-04 | Overlay camera carries `Hdr`, `auto_create_primary_context` disabled              | Share the orbit camera's target format; avoid a duplicate egui context     |
 | 2026-07-04 | Debug tooling extracted into a `dev_tools` module (`DevToolsPlugin`)              | Keep `main` thin; gate all dev tooling out of release in one place         |
 | 2026-07-04 | One custom egui window via `ui_for_resource`, not per-resource quick plugins      | Single "Dev Tools" panel with collapsible sections; scales to many tools   |
+| 2026-07-04 | Nebula density is a domain-warped FBM (after Inigo Quilez)                        | Blobby Perlin -> swirling filaments closer to the reference art            |
+| 2026-07-04 | Separate `warp` (smooth) and `density` (detailed) noise fields                    | The warp wants low octaves/frequency, the detail wants more                |
 
 ## Debug tooling
 
