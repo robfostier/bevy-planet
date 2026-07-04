@@ -6,7 +6,7 @@ use bevy::{
         Extent3d, TextureDimension, TextureFormat, TextureViewDescriptor, TextureViewDimension,
     },
 };
-use bevy_inspector_egui::{prelude::*, quick::ResourceInspectorPlugin};
+use bevy_inspector_egui::prelude::*;
 use noise::{Fbm, NoiseFn, Perlin};
 
 /// Maps a pixel position `(u, v)` (each in `[-1, 1]`) on cubemap face
@@ -156,8 +156,6 @@ pub struct SkyboxPlugin;
 impl Plugin for SkyboxPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<SkyboxParams>()
-            .register_type::<SkyboxParams>()
-            .add_plugins(ResourceInspectorPlugin::<SkyboxParams>::default())
             .init_resource::<SkyboxCubemap>()
             .add_systems(
                 Update,

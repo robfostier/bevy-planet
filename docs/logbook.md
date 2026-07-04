@@ -138,6 +138,7 @@ Done
 - Moved the cubemap behind a shared `SkyboxCubemap` handle, reserved at plugin-build time via `FromWorld` and filled by a `rebuild_skybox_cubemap` system gated on `resource_changed::<SkyboxParams>` (so it also bakes once on startup).
 - Gave egui its own 2D overlay camera and disabled bevy_egui's automatic primary context, after a chain of rendering problems (see below).
 - Documented the previously bare skybox, star-system and inspector code inline.
+- Extracted all dev tooling out of `main.rs` into a `dev_tools` module (`DevToolsPlugin`), and replaced the per-resource quick inspector with a single custom "Dev Tools" egui window that draws collapsible sections via `bevy_inspector::ui_for_resource`.
 
 Learned
 
@@ -147,6 +148,7 @@ Learned
 - An overlay camera that must not wipe the 3D scene needs `ClearColorConfig::None`; otherwise it repaints the whole viewport before drawing egui.
 - Two cameras rendering to the same window only share the intermediate "main texture" when they agree on its format. That format is part of the texture-cache key in `prepare_view_targets`, and `Hdr` is what selects `Rgba16Float`. An HDR orbit camera plus a non-HDR overlay therefore get two separate textures, so the overlay's MSAA writeback reads an empty (black) texture and composites egui over black; giving the overlay a matching `Hdr` fixes it.
 - Reading the installed Bevy source directly (the cache key in `prepare_view_targets`, the writeback condition in `msaa_writeback`) is what finally pinned the black-screen cause, after several wrong guesses drawn from symptoms alone.
+- The quick `ResourceInspectorPlugin` silently bundles two things the manual `ui_for_resource` path does not: it `register_type`s the inspected type, and it adds `DefaultInspectorConfigPlugin` (which registers the `InspectorEguiImpl` egui widget for each standard type). Going manual, both become your job -- without them the panel first shows "not registered", then "u32 is #[reflect(opaque)], register an InspectorEguiImpl".
 
 Next
 

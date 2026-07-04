@@ -31,6 +31,7 @@ The code lives in `app/` (package `bevy-planet`): a library crate (`bevy_planet`
 | `camera::sync`      | Applies `OrbitCamera` state to the `Transform` each frame              |
 | `skybox` (mvp)      | Procedural nebula cubemap for the `Skybox` (FBM Perlin)                |
 | `utils`             | Small standalone helpers (currently: easing functions)                 |
+| `dev_tools` (dev)   | Diagnostics + a single egui inspector window (live tuning)             |
 | (to define)         | Procedural generation (source of truth)                                |
 | (to define)         | Orbital view (whole planet, low-res)                                   |
 | (to define)         | First-person view (surface, high-res)                                  |
@@ -82,10 +83,12 @@ This is pure computation: to be covered by unit tests.
 | 2026-07-04 | Nebula cubemap behind a reserved `SkyboxCubemap` handle, rebuilt on change        | Decouple generation from the camera; a single build path                   |
 | 2026-07-04 | egui on a dedicated 2D overlay camera, not the orbit camera                       | Inside the HDR/`Bloom` pipeline the egui pass was drawn over by the skybox |
 | 2026-07-04 | Overlay camera carries `Hdr`, `auto_create_primary_context` disabled              | Share the orbit camera's target format; avoid a duplicate egui context     |
+| 2026-07-04 | Debug tooling extracted into a `dev_tools` module (`DevToolsPlugin`)              | Keep `main` thin; gate all dev tooling out of release in one place         |
+| 2026-07-04 | One custom egui window via `ui_for_resource`, not per-resource quick plugins      | Single "Dev Tools" panel with collapsible sections; scales to many tools   |
 
 ## Debug tooling
 
-The egui inspector (`bevy-inspector-egui`) is wired up in `debug_plugin` (`main.rs`) so it can be gated out of release builds in one place. It renders on a dedicated 2D overlay camera rather than on the orbit camera, because egui hooks into its host camera's render graph and inside the orbit camera's HDR + `Bloom` pipeline the egui pass ended up behind the skybox pass. The overlay camera renders after the orbit camera, does not clear, and carries `PrimaryEguiContext` while `EguiGlobalSettings::auto_create_primary_context` is turned off so bevy_egui does not also attach a context to the 3D camera. It must also carry `Hdr`: two cameras sharing a render target only share the intermediate "main texture" when they agree on its format, and `Hdr` is what selects `Rgba16Float`; that format is part of the texture-cache key in `prepare_view_targets`, so without it the two cameras get separate textures and the overlay's MSAA writeback composites egui over an empty (black) frame.
+The egui inspector (`bevy-inspector-egui`) lives in a dedicated `dev_tools` module (`DevToolsPlugin`), grouped so it can be gated out of release builds in one place. It draws a single "Dev Tools" `egui::Window` from one exclusive system (in the `EguiPrimaryContextPass` schedule), with a collapsible section per resource built via `bevy_inspector::ui_for_resource`; this replaces the per-resource `quick::ResourceInspectorPlugin` (one window each) and scales to many panels. Going manual means the plugin owns the pieces the quick plugin bundled: `EguiPlugin`, `DefaultInspectorConfigPlugin` (the egui widgets for standard types like `u32`/`f64`), and a `register_type` for each inspected type. It renders on a dedicated 2D overlay camera rather than on the orbit camera, because egui hooks into its host camera's render graph and inside the orbit camera's HDR + `Bloom` pipeline the egui pass ended up behind the skybox pass. The overlay camera renders after the orbit camera, does not clear, and carries `PrimaryEguiContext` while `EguiGlobalSettings::auto_create_primary_context` is turned off so bevy_egui does not also attach a context to the 3D camera. It must also carry `Hdr`: two cameras sharing a render target only share the intermediate "main texture" when they agree on its format, and `Hdr` is what selects `Rgba16Float`; that format is part of the texture-cache key in `prepare_view_targets`, so without it the two cameras get separate textures and the overlay's MSAA writeback composites egui over an empty (black) frame.
 
 ## Known issues / environment
 

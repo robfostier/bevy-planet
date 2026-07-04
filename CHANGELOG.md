@@ -14,7 +14,7 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), ver
 - Library/binary split: game logic lives in a library crate (`bevy_planet`) exposed as Bevy plugins; the binary is a thin launcher.
 - HDR rendering pipeline on the orbit camera: `Hdr`, photometric `Exposure`, `TonyMcMapface` tonemapping, and `Bloom`, as the first step of a PBR/visual-realism pass.
 - Procedural nebula skybox (`skybox.rs`): a 6-face cubemap generated on the CPU from an `Fbm<Perlin>` noise field, in place of a loaded HDRI.
-- Live-tuning inspector for the nebula skybox: the noise `seed` and `frequency` are exposed as a `SkyboxParams` resource and edited at runtime through a `bevy-inspector-egui` panel; the cubemap is held behind a shared `SkyboxCubemap` handle (reserved at build time) and rebuilt only when the parameters change. The panel renders on a dedicated 2D overlay camera set up in `debug_plugin`, so egui does not draw inside the HDR orbit camera's pipeline.
+- Live-tuning inspector for the nebula skybox: the noise `seed` and `frequency` are exposed as a `SkyboxParams` resource and edited at runtime through a `bevy-inspector-egui` panel; the cubemap is held behind a shared `SkyboxCubemap` handle (reserved at build time) and rebuilt only when the parameters change. The inspector lives in a `dev_tools` module (`DevToolsPlugin`) that draws a single "Dev Tools" egui window on a dedicated overlay camera, so egui does not draw inside the HDR orbit camera's pipeline.
 
 ### Changed
 
