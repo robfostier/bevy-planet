@@ -122,7 +122,7 @@ impl Plugin for CameraPlugin {
             .add_systems(
                 Update,
                 (
-                    bind_orbit_camera_target,
+                    bind_orbit_camera_target.run_if(resource_added::<SystemBodies>),
                     input::grab_cursor_on_mmb,
                     input::drag_orbit_camera,
                     input::zoom_orbit_camera,
