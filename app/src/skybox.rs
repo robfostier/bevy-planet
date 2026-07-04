@@ -6,6 +6,7 @@ use bevy::{
         Extent3d, TextureDimension, TextureFormat, TextureViewDescriptor, TextureViewDimension,
     },
 };
+use bevy_inspector_egui::{prelude::*, quick::ResourceInspectorPlugin};
 use noise::{Fbm, NoiseFn, Perlin};
 
 /// Maps a pixel position `(u, v)` (each in `[-1, 1]`) on cubemap face
@@ -53,7 +54,8 @@ fn build_face_pixels(
             let u = (x as f32 + 0.5) / resolution as f32 * 2.0 - 1.0;
             let v = (y as f32 + 0.5) / resolution as f32 * 2.0 - 1.0;
             let direction = face_uv_to_direction(face_index, u, v);
-            // The cubemap's +Z face is flipped in the Y axis, so we flip it back here
+            // Negate Z so the noise is sampled in the cubemap's left-handed frame,
+            // matching the ray.z negation done in skybox.wgsl's fragment shader.
             let sample_direction = direction * Vec3::new(1.0, 1.0, -1.0);
             let density = nebula_density(sample_direction, noise, frequency);
             for channel in [density, density, density, 1.0] {
@@ -66,13 +68,12 @@ fn build_face_pixels(
 
 /// Builds the full 6-face cubemap `Image`, ready to be assigned to a
 /// `Skybox`'s `image` field.
-pub(crate) fn build_nebula_cubemap_image(
+pub(crate) fn build_skybox_cubemap_image(
     resolution: u32,
     noise: &Fbm<Perlin>,
     frequency: f64,
 ) -> Image {
     let data = (0..6)
-        .into_iter()
         .flat_map(|face_index| build_face_pixels(face_index, resolution, noise, frequency))
         .collect();
 
@@ -92,5 +93,75 @@ pub(crate) fn build_nebula_cubemap_image(
             TextureFormat::Rgba32Float,
             RenderAssetUsages::RENDER_WORLD,
         )
+    }
+}
+
+/// Regenerates the skybox cubemap whenever `SkyboxParams` changes and writes the
+/// fresh image into the pre-reserved `SkyboxCubemap` handle, so the orbit camera's
+/// `Skybox` picks it up without being re-spawned. The `resource_changed` run
+/// condition keeps it idle except on parameter edits (and once at startup, when
+/// the resource is first inserted.)
+pub(crate) fn rebuild_skybox_cubemap(
+    params: Res<SkyboxParams>,
+    cubemap: Res<SkyboxCubemap>,
+    mut images: ResMut<Assets<Image>>,
+) {
+    let noise = Fbm::<Perlin>::new(params.seed);
+    let image = build_skybox_cubemap_image(256, &noise, params.frequency);
+    let _ = images.insert(cubemap.0.id(), image);
+}
+
+/// Live-tunable parameters for the procedural skybox, edited at runtime through
+/// the egui inspector and consumed by `rebuild_skybox_cubemap`.
+#[derive(Reflect, Resource, InspectorOptions)]
+#[reflect(Resource, InspectorOptions)]
+pub(crate) struct SkyboxParams {
+    /// Seed for the procedural noise generator.
+    pub(crate) seed: u32,
+    /// Frequency of the procedural noise generator.
+    #[inspector(min = 0.1, max = 10.0, speed = 0.1)]
+    pub(crate) frequency: f64,
+}
+
+impl Default for SkyboxParams {
+    fn default() -> Self {
+        Self {
+            seed: 0,
+            frequency: 2.0,
+        }
+    }
+}
+
+/// Holds the shared `Handle<Image>` for the skybox cubemap.
+/// The image is generated once at startup and whenever `SkyboxParams` changes,
+/// and the handle is never replaced.
+#[derive(Resource)]
+pub(crate) struct SkyboxCubemap(pub(crate) Handle<Image>);
+
+/// Reserves and empty `Handle<Image>` at plugin-build, so it exists before any
+/// camera reads it. The pixels are baked later by `rebuild_skybox_cubemap`.
+impl FromWorld for SkyboxCubemap {
+    fn from_world(world: &mut World) -> Self {
+        let images = world.resource_mut::<Assets<Image>>();
+        let handle = images.reserve_handle();
+        Self(handle)
+    }
+}
+
+/// Wires up the procedural skybox: the tunable `SkyboxParams`, its egui
+/// inspector panel, the shared `SkyboxCubemap` handle, and the system that
+/// rebuilds the cubemap whenever the parameters change.
+pub struct SkyboxPlugin;
+
+impl Plugin for SkyboxPlugin {
+    fn build(&self, app: &mut App) {
+        app.init_resource::<SkyboxParams>()
+            .register_type::<SkyboxParams>()
+            .add_plugins(ResourceInspectorPlugin::<SkyboxParams>::default())
+            .init_resource::<SkyboxCubemap>()
+            .add_systems(
+                Update,
+                rebuild_skybox_cubemap.run_if(resource_changed::<SkyboxParams>),
+            );
     }
 }

@@ -129,3 +129,26 @@ Next
 - Replace the skybox's debug direction-colors with the real palette driven by `nebula_density`, then layer domain warping and a sparse star field.
 - Wire up `bevy-inspector-egui`'s `ResourceInspectorPlugin` for live tuning of the nebula parameters.
 - Resume after that: procedural planet generation, the project's core milestone.
+
+## 2026-07-04 -- Live-tuning inspector for the nebula skybox
+
+Done
+
+- Exposed the nebula's `seed` and `frequency` as a `SkyboxParams` resource, edited live through a `bevy-inspector-egui` panel.
+- Moved the cubemap behind a shared `SkyboxCubemap` handle, reserved at plugin-build time via `FromWorld` and filled by a `rebuild_skybox_cubemap` system gated on `resource_changed::<SkyboxParams>` (so it also bakes once on startup).
+- Gave egui its own 2D overlay camera and disabled bevy_egui's automatic primary context, after a chain of rendering problems (see below).
+- Documented the previously bare skybox, star-system and inspector code inline.
+
+Learned
+
+- In bevy-inspector-egui 0.37, the quick `ResourceInspectorPlugin` registers its UI in the `EguiPrimaryContextPass` schedule and requires `EguiPlugin` to be added first -- it does not add it for you in this version.
+- Adding a plugin runs its `build()` at App-construction time, not its systems: a resource set inside `build()` (here `EguiGlobalSettings::auto_create_primary_context = false`) lands before any `Startup` system spawns a camera, even if the camera's plugin was added earlier in the list. Plugin order drives `build()` order, not system execution order.
+- bevy_egui attaches its primary context to the first camera created, so on the HDR orbit camera the egui pass was drawn over by the skybox pass. A dedicated overlay camera marked `PrimaryEguiContext` fixes that, but on its own it creates a second primary context and panics ("must have a unique schedule") unless `auto_create_primary_context` is turned off.
+- An overlay camera that must not wipe the 3D scene needs `ClearColorConfig::None`; otherwise it repaints the whole viewport before drawing egui.
+- Two cameras rendering to the same window only share the intermediate "main texture" when they agree on its format. That format is part of the texture-cache key in `prepare_view_targets`, and `Hdr` is what selects `Rgba16Float`. An HDR orbit camera plus a non-HDR overlay therefore get two separate textures, so the overlay's MSAA writeback reads an empty (black) texture and composites egui over black; giving the overlay a matching `Hdr` fixes it.
+- Reading the installed Bevy source directly (the cache key in `prepare_view_targets`, the writeback condition in `msaa_writeback`) is what finally pinned the black-screen cause, after several wrong guesses drawn from symptoms alone.
+
+Next
+
+- Replace the skybox's placeholder grayscale with the real nebula palette driven by `nebula_density`, then layer domain warping and a sparse star field.
+- Resume the project's core milestone: procedural planet generation.

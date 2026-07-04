@@ -1,29 +1,43 @@
 use bevy::prelude::*;
 
+/// Handles to the key bodies of the system, published once `spawn_system` has run
+/// so other plugins can reference them by entity.
 #[derive(Resource)]
 pub(crate) struct SystemBodies {
+    /// The star at the center of the system.
     pub(crate) star: Entity,
 }
 
+/// Marks an entity as an orbital body and carries its radius.
 #[derive(Component)]
 #[require(Pickable)]
 pub(crate) struct CelestialBody {
+    /// Body radius in world units.
     pub(crate) radius: f32,
 }
 
+/// Marker for the system's central star.
 #[derive(Component)]
 struct Star;
 
+/// Marker for a planet.
 #[derive(Component)]
 struct Planet;
 
+/// Makes an entity revolve around the world origin in the XZ plane. This is
+/// origin-relative, not parent-relative: it assumes the orbited body sits at the
+/// origin, so it does not yet support moons orbiting a moving planet.
 #[derive(Component)]
 struct Orbital {
+    /// Orbit radius in world units.
     radius: f32,
+    /// Angular velocity in radians per second.
     angular_speed: f32,
+    /// Starting angle in radians, to stagger bodies around their orbits.
     phase: f32,
 }
 
+/// Advances each `Orbital` body along its circular orbit around the origin.
 fn update_orbital(time: Res<Time>, mut query: Query<(&mut Transform, &Orbital)>) {
     for (mut transform, orbital) in &mut query {
         let angle = orbital.angular_speed * time.elapsed_secs() + orbital.phase;
@@ -33,18 +47,23 @@ fn update_orbital(time: Res<Time>, mut query: Query<(&mut Transform, &Orbital)>)
     }
 }
 
+/// Spins an entity around its own axis, independently of any orbital motion.
 #[derive(Component)]
 struct Spin {
+    /// Rotation speed in radians per second.
     angular_speed: f32,
+    /// Local axis to rotate about.
     axis: Dir3,
 }
 
+/// Rotates each `Spin` body about its own axis every frame.
 fn update_spin(time: Res<Time>, mut query: Query<(&mut Transform, &Spin)>) {
     for (mut transform, spin) in &mut query {
         transform.rotate_axis(spin.axis, spin.angular_speed * time.delta_secs());
     }
 }
 
+/// Spawns the initial star system and publishes their entity handles in `SystemBodies`.
 fn spawn_system(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -108,9 +127,12 @@ fn spawn_system(
     ));
 }
 
+/// Groups the star system's per-frame motion, so other plugins can order
+/// themselves after the bodies have moved this frame.
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct StarSystemSet;
 
+/// Builds the star system and keeps its bodies moving every frame.
 pub struct StarSystemPlugin;
 
 impl Plugin for StarSystemPlugin {

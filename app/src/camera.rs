@@ -8,8 +8,10 @@ mod input;
 mod picking;
 mod sync;
 
-use crate::skybox::build_nebula_cubemap_image;
-use crate::star_system::{StarSystemSet, SystemBodies};
+use crate::{
+    skybox::SkyboxCubemap,
+    star_system::{StarSystemSet, SystemBodies},
+};
 use bevy::{
     camera::{Exposure, Hdr},
     core_pipeline::tonemapping::Tonemapping,
@@ -17,7 +19,6 @@ use bevy::{
     post_process::bloom::Bloom,
     prelude::*,
 };
-use noise::{Fbm, Perlin};
 use std::time::Duration;
 
 /// Radians of orbit per pixel of mouse motion while dragging.
@@ -65,12 +66,10 @@ struct OrbitCamera {
 
 /// Spawns the single orbit camera, with no target yet (assigned next frame
 /// by `bind_orbit_camera_target`).
-fn spawn_orbit_camera(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
-    let noise = Fbm::<Perlin>::new(0);
-    let handle = images.add(build_nebula_cubemap_image(256, &noise, 2.0));
-
+fn spawn_orbit_camera(mut commands: Commands, cubemap: Res<SkyboxCubemap>) {
     commands.spawn((
         Camera3d::default(),
+        Name::new("Orbit Camera"),
         MeshPickingCamera,
         OrbitCamera {
             radius: DEFAULT_CAMERA_RADIUS,
@@ -88,7 +87,7 @@ fn spawn_orbit_camera(mut commands: Commands, mut images: ResMut<Assets<Image>>)
             ..default()
         },
         Skybox {
-            image: Some(handle),
+            image: Some(cubemap.0.clone()),
             brightness: 1e4,
             ..default()
         },

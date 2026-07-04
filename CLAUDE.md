@@ -7,7 +7,7 @@ A Rust + Bevy 0.19 game: a procedural planet in a 3D scene, observable at two li
 
 ## Repository layout
 
-The Rust crate lives in `app/` (package `bevy-planet`, a single binary for now); its source is `app/src/`. Documentation and tooling stay at the repo root and there is no Cargo manifest at the root: the `Makefile` drives cargo inside `app/`.
+The Rust crate lives in `app/` (package `bevy-planet`: a library crate `bevy_planet` holding the game logic, plus a thin binary that builds the `App`); its source is `app/src/`. Documentation and tooling stay at the repo root and there is no Cargo manifest at the root: the `Makefile` drives cargo inside `app/`.
 
 ## Pedagogical contract (TOP PRIORITY)
 
