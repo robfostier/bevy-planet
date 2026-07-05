@@ -161,3 +161,22 @@ Next
 - Add the contrast/levels remap to carve black voids out of the mid-gray fog (the biggest remaining visual gap).
 - Then the palette (color), a ridged detail layer, and a star field.
 - Consider raising the bake resolution, or moving generation into `skybox.wgsl` for full sharpness.
+
+## 2026-07-05 -- Contrast/levels: carving the voids
+
+Done
+
+- Added a smoothstep contrast/levels remap on the density (`density_levels_floor`/`ceil`), turning the mid-gray fog into deep black voids with the wisps standing out -- the moment the nebula reads as space.
+- Factored `smoothstep` and `levels` into `utils` as a small easing/remap family alongside `ease_in_out_sine`.
+
+Learned
+
+- The type boundary is the `as f32` in `nebula_density`: the noise/warp geometry stays f64 (the `noise` crate's native side), everything downstream (levels, palette, pixels) is f32 (the `Rgba32Float`/`Color` side). Pick the type of the side you are on.
+- `levels(value, floor, ceil)` is exactly the GLSL 3-argument `smoothstep`; keeping the 1-argument curve (`smoothstep`) in `utils` and the domain remap (`levels`) as a thin composition of it avoids duplicating the polynomial.
+- Resisted making the easing helpers generic over the float type: Rust has no std `Float` trait, so it would mean a `num-traits` dependency and uglier literals -- premature until a second concrete f64 caller shows up.
+
+Next
+
+- The palette (density -> color) in a new `skybox/color.rs`: a cosine palette (after Inigo Quilez), tunable live.
+- Then a ridged detail layer and a star field.
+- Raise the bake resolution, or move generation into `skybox.wgsl` for full sharpness.

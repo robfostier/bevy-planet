@@ -32,7 +32,14 @@ pub(crate) struct SkyboxParams {
     /// The smooth field that displaces the sampling position.
     pub(crate) warp: NoiseParams,
     /// How far the warp displaces the sampling position.
+    #[inspector(min = 0.0, max = 4.0, speed = 0.01)]
     pub(crate) warp_strength: f64,
+    /// The density value that maps to black (0.0) in the final cubemap.
+    #[inspector(min = 0.0, max = 1.0, speed = 0.01)]
+    pub(crate) density_levels_floor: f32,
+    #[inspector(min = 0.0, max = 1.0, speed = 0.01)]
+    /// The density value that maps to white (1.0) in the final cubemap.
+    pub(crate) density_levels_ceil: f32,
 }
 
 impl Default for SkyboxParams {
@@ -43,7 +50,7 @@ impl Default for SkyboxParams {
                 frequency: 2.0,
                 octaves: 5,
                 lacunarity: 2.0,
-                persistence: 0.55,
+                persistence: 0.5,
             },
             warp: NoiseParams {
                 seed: 1,
@@ -52,7 +59,9 @@ impl Default for SkyboxParams {
                 lacunarity: 2.0,
                 persistence: 0.5,
             },
-            warp_strength: 0.4,
+            warp_strength: 0.6,
+            density_levels_floor: 0.48,
+            density_levels_ceil: 0.71,
         }
     }
 }

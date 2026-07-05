@@ -5,6 +5,8 @@
 use bevy::{math::DVec3, prelude::*};
 use noise::{Fbm, MultiFractal, NoiseFn, Perlin};
 
+use crate::utils::levels;
+
 use super::params::{NoiseParams, SkyboxParams};
 
 /// Builds a configured `Fbm<Perlin>` from a `NoiseParams`.
@@ -21,6 +23,8 @@ fn build_fbm(params: &NoiseParams) -> Fbm<Perlin> {
 pub(super) struct NebulaField {
     /// Detailed field, read at the warped position for the final density.
     density_noise: Fbm<Perlin>,
+    /// Density remapping levels: `(floor, ceil)` maps the raw density to `[0, 1]`.
+    density_levels: (f32, f32),
     /// Smooth field, used to build the domain-warp displacement.
     warp_noise: Fbm<Perlin>,
     /// Displacement strength of the domain warp.
@@ -32,6 +36,7 @@ impl NebulaField {
     pub(super) fn new(params: &SkyboxParams) -> Self {
         Self {
             density_noise: build_fbm(&params.density),
+            density_levels: (params.density_levels_floor, params.density_levels_ceil),
             warp_noise: build_fbm(&params.warp),
             warp_strength: params.warp_strength,
         }
@@ -83,5 +88,6 @@ fn domain_warp(point: DVec3, field: &NebulaField) -> DVec3 {
 pub(super) fn nebula_density(direction: Vec3, field: &NebulaField) -> f32 {
     let point = domain_warp(direction.as_dvec3(), field);
     let raw = field.density_noise.get(point.to_array());
-    ((raw + 1.0) * 0.5) as f32
+    let density = ((raw + 1.0) * 0.5) as f32;
+    levels(density, field.density_levels.0, field.density_levels.1)
 }
