@@ -22,23 +22,24 @@ The code lives in `app/` (package `bevy-planet`): a library crate (`bevy_planet`
 
 ### Envisioned modules (to be confirmed in practice)
 
-| Module / domain     | Role                                                                   |
-|---------------------|------------------------------------------------------------------------|
-| `star_system` (mvp) | Central star (light) + orbiting/spinning bodies, as `StarSystemPlugin` |
-| `camera` (mvp)      | Orbit camera, as `CameraPlugin`; submodules below                      |
-| `camera::input`     | Continuous per-frame input: drag to rotate, scroll to zoom             |
-| `camera::picking`   | Click-to-select: double-click switches target, starts a transition     |
-| `camera::sync`      | Applies `OrbitCamera` state to the `Transform` each frame              |
-| `skybox` (mvp)      | Procedural nebula cubemap for the `Skybox`; submodules below           |
-| `skybox::params`    | Tunable FBM knobs (`SkyboxParams`, `NoiseParams`)                      |
-| `skybox::field`     | Density generation: domain-warped FBM (`NebulaField`)                  |
-| `skybox::cubemap`   | Assembles the density field into a 6-face cubemap `Image`              |
-| `utils`             | Small standalone helpers                                               |
-| `dev_tools` (dev)   | Diagnostics + a single egui inspector window (live tuning)             |
-| (to define)         | Procedural generation (source of truth)                                |
-| (to define)         | Orbital view (whole planet, low-res)                                   |
-| (to define)         | First-person view (surface, high-res)                                  |
-| (to define)         | Mapping between coordinate systems                                     |
+| Module / domain     | Role                                                                         |
+|---------------------|------------------------------------------------------------------------------|
+| `star_system` (mvp) | Central star (light) + orbiting/spinning bodies, as `StarSystemPlugin`       |
+| `camera` (mvp)      | Orbit camera, as `CameraPlugin`; submodules below                            |
+| `camera::input`     | Continuous per-frame input: drag to rotate, scroll to zoom                   |
+| `camera::picking`   | Click-to-select: double-click switches target, starts a transition           |
+| `camera::sync`      | Applies `OrbitCamera` state to the `Transform` each frame                    |
+| `skybox` (mvp)      | Procedural nebula cubemap for the `Skybox`; submodules below                 |
+| `skybox::params`    | Tunable generation knobs (`SkyboxParams` + per-stage filter structs)         |
+| `skybox::field`     | Density generation: warped ridged noise times a density mask (`NebulaField`) |
+| `skybox::color`     | Maps the scalar density to a color through a `Palette`                       |
+| `skybox::cubemap`   | Assembles the density field into a 6-face cubemap `Image`                    |
+| `utils`             | Small standalone helpers                                                     |
+| `dev_tools` (dev)   | Diagnostics + a single egui inspector window (live tuning)                   |
+| (to define)         | Procedural generation (source of truth)                                      |
+| (to define)         | Orbital view (whole planet, low-res)                                         |
+| (to define)         | First-person view (surface, high-res)                                        |
+| (to define)         | Mapping between coordinate systems                                           |
 
 `camera` only holds the shared state (`OrbitCamera`, `CameraTransition`) and the `Plugin`; each submodule covers a distinct kind of concern (continuous input with no state machine, versus an event-driven `Observer` with a debounce state machine, versus per-frame `Transform` sync) rather than being split by raw line count. The orbit camera and a future ground/first-person camera are deliberately not pre-organised around a shared abstraction yet -- the ground camera's actual shape is still unknown, so that decomposition is deferred to when that work actually starts.
 
@@ -66,31 +67,46 @@ This is pure computation: to be covered by unit tests.
 
 ## Technical decisions (lightweight ADR)
 
-| Date       | Decision                                                                          | Reason                                                                     |
-|------------|-----------------------------------------------------------------------------------|----------------------------------------------------------------------------|
-| 2026-06-16 | Bevy 0.18, Rust edition 2024                                                      | Latest stable versions                                                     |
-| 2026-06-16 | `dynamic_linking` in dev only                                                     | Fast recompiles                                                            |
-| 2026-06-16 | Deps at `opt-level=3`, our code at `opt-level=1`                                  | Fast dev build + smooth runtime                                            |
-| 2026-06-18 | Target switches animate (position and look-at eased together, one shared `Timer`) | Avoid an instant, jarring snap when the orbit camera's target changes      |
-| 2026-06-18 | `camera.rs` split into `camera/{input,picking,sync}.rs`                           | Single file had grown past 200 lines, mixing distinct concerns             |
-| 2026-06-20 | Bevy 0.19 upgrade                                                                 | Stay on latest stable, per policy                                          |
-| 2026-06-20 | Removed `ClusterConfig::Single` (no clustering)                                   | Far-Z bound lagged a frame in 0.19, could leave the star unlit             |
-| 2026-06-20 | `StarSystemSet` orders movement before camera sync                                | Fixed a `Transform` race causing camera jitter                             |
-| 2026-06-20 | `ambiguity_detection: Warn` enabled permanently                                   | Catch future ordering conflicts early                                      |
-| 2026-06-22 | `Hdr` + `Bloom` + `Tonemapping::TonyMcMapface` on the orbit camera                | Realistic star bloom/exposure for the PBR pass                             |
-| 2026-06-22 | Star/planet scale retuned (star 2.0, planet 0.25, orbit 8.6)                      | Stay readable at the new exposure/bloom settings                           |
-| 2026-06-24 | Procedural cubemap `Skybox` (CPU, FBM Perlin noise), not a loaded HDRI            | Wanted a primordial-nebula look, no matching off-the-shelf asset           |
-| 2026-06-24 | `face_uv_to_direction` uses the OpenGL/Vulkan cube-face formula directly          | `CUBE_MAP_FACES`'s `looking_at`-derived basis mismatched face winding      |
-| 2026-06-24 | Skybox content Z-mirrored before writing                                          | Compensates `skybox.wgsl`'s own Z-negation at sample time                  |
-| 2026-07-04 | `bevy-inspector-egui` panel exposing `SkyboxParams` (seed, frequency)             | Tune the nebula look at runtime without recompiling                        |
-| 2026-07-04 | Nebula cubemap behind a reserved `SkyboxCubemap` handle, rebuilt on change        | Decouple generation from the camera; a single build path                   |
-| 2026-07-04 | egui on a dedicated 2D overlay camera, not the orbit camera                       | Inside the HDR/`Bloom` pipeline the egui pass was drawn over by the skybox |
-| 2026-07-04 | Overlay camera carries `Hdr`, `auto_create_primary_context` disabled              | Share the orbit camera's target format; avoid a duplicate egui context     |
-| 2026-07-04 | Debug tooling extracted into a `dev_tools` module (`DevToolsPlugin`)              | Keep `main` thin; gate all dev tooling out of release in one place         |
-| 2026-07-04 | One custom egui window via `ui_for_resource`, not per-resource quick plugins      | Single "Dev Tools" panel with collapsible sections; scales to many tools   |
-| 2026-07-04 | Nebula density is a domain-warped FBM (after Inigo Quilez)                        | Blobby Perlin -> swirling filaments closer to the reference art            |
-| 2026-07-04 | Separate `warp` (smooth) and `density` (detailed) noise fields                    | The warp wants low octaves/frequency, the detail wants more                |
-| 2026-07-05 | Smoothstep contrast/levels remap on the density (`floor`/`ceil`)                  | Carve black voids out of the mid-gray FBM fog                              |
+| Date       | Decision                                                                          | Reason                                                                             |
+|------------|-----------------------------------------------------------------------------------|------------------------------------------------------------------------------------|
+| 2026-06-16 | Bevy 0.18, Rust edition 2024                                                      | Latest stable versions                                                             |
+| 2026-06-16 | `dynamic_linking` in dev only                                                     | Fast recompiles                                                                    |
+| 2026-06-16 | Deps at `opt-level=3`, our code at `opt-level=1`                                  | Fast dev build + smooth runtime                                                    |
+| 2026-06-18 | Target switches animate (position and look-at eased together, one shared `Timer`) | Avoid an instant, jarring snap when the orbit camera's target changes              |
+| 2026-06-18 | `camera.rs` split into `camera/{input,picking,sync}.rs`                           | Single file had grown past 200 lines, mixing distinct concerns                     |
+| 2026-06-20 | Bevy 0.19 upgrade                                                                 | Stay on latest stable, per policy                                                  |
+| 2026-06-20 | Removed `ClusterConfig::Single` (no clustering)                                   | Far-Z bound lagged a frame in 0.19, could leave the star unlit                     |
+| 2026-06-20 | `StarSystemSet` orders movement before camera sync                                | Fixed a `Transform` race causing camera jitter                                     |
+| 2026-06-20 | `ambiguity_detection: Warn` enabled permanently                                   | Catch future ordering conflicts early                                              |
+| 2026-06-22 | `Hdr` + `Bloom` + `Tonemapping::TonyMcMapface` on the orbit camera                | Realistic star bloom/exposure for the PBR pass                                     |
+| 2026-06-22 | Star/planet scale retuned (star 2.0, planet 0.25, orbit 8.6)                      | Stay readable at the new exposure/bloom settings                                   |
+| 2026-06-24 | Procedural cubemap `Skybox` (CPU, FBM Perlin noise), not a loaded HDRI            | Wanted a primordial-nebula look, no matching off-the-shelf asset                   |
+| 2026-06-24 | `face_uv_to_direction` uses the OpenGL/Vulkan cube-face formula directly          | `CUBE_MAP_FACES`'s `looking_at`-derived basis mismatched face winding              |
+| 2026-06-24 | Skybox content Z-mirrored before writing                                          | Compensates `skybox.wgsl`'s own Z-negation at sample time                          |
+| 2026-07-04 | `bevy-inspector-egui` panel exposing `SkyboxParams` (seed, frequency)             | Tune the nebula look at runtime without recompiling                                |
+| 2026-07-04 | Nebula cubemap behind a reserved `SkyboxCubemap` handle, rebuilt on change        | Decouple generation from the camera; a single build path                           |
+| 2026-07-04 | egui on a dedicated 2D overlay camera, not the orbit camera                       | Inside the HDR/`Bloom` pipeline the egui pass was drawn over by the skybox         |
+| 2026-07-04 | Overlay camera carries `Hdr`, `auto_create_primary_context` disabled              | Share the orbit camera's target format; avoid a duplicate egui context             |
+| 2026-07-04 | Debug tooling extracted into a `dev_tools` module (`DevToolsPlugin`)              | Keep `main` thin; gate all dev tooling out of release in one place                 |
+| 2026-07-04 | One custom egui window via `ui_for_resource`, not per-resource quick plugins      | Single "Dev Tools" panel with collapsible sections; scales to many tools           |
+| 2026-07-04 | Nebula density is a domain-warped FBM (after Inigo Quilez)                        | Blobby Perlin -> swirling filaments closer to the reference art                    |
+| 2026-07-04 | Separate `warp` (smooth) and `density` (detailed) noise fields                    | The warp wants low octaves/frequency, the detail wants more                        |
+| 2026-07-05 | Smoothstep contrast/levels remap on the density (`floor`/`ceil`)                  | Carve black voids out of the mid-gray FBM fog                                      |
+| 2026-07-12 | Density is a ridged-multifractal structure times a smooth FBM mask                | A single FBM read as flat fog; ridged noise gives filaments, the mask carves voids |
+| 2026-07-12 | Optional warp-amplitude mask modulating the domain warp per region                | A uniform warp looked mechanical; masking it alternates calm and turbulent zones   |
+| 2026-07-12 | `skybox::color` palette maps density to color (edge-to-core lerp x intensity)     | Replace the placeholder grayscale write with a tunable nebula color ramp           |
+| 2026-07-12 | `SkyboxParams` split into per-stage structs                                       | Each filter stage stays independently toggleable and tunable in the inspector      |
+
+## Nebula generation
+
+The skybox is a CPU-baked cubemap: `cubemap` maps each face pixel to a direction, `field::nebula_density` returns a scalar density in `[0, 1]` for that direction, and `color::nebula_color` turns it into a pixel. The density is a short filter chain, each stage individually toggleable and tunable through `SkyboxParams`:
+
+1. Domain warp (optional): the sampling direction is pushed by a two-level warp of a smooth FBM field (after Inigo Quilez), turning blobs into swirling filaments. A warp mask -- an FBM sampled at the original direction, shaped by optional levels and contrast -- can modulate the displacement amplitude per region, so the warp rages in some areas and stays calm in others.
+2. Ridge (optional): a ridged-multifractal `RidgedMulti<Perlin>` supplies the filament structure, remapped to `[0, 1]` and optionally gamma-shaped, then multiplied into the density.
+3. Density mask (optional): a smooth FBM, sampled at the un-warped direction and shaped by optional levels (smoothstep) and contrast, multiplied in to carve the large-scale black voids.
+4. Global gamma and levels (optional): a final shaping pass on the density.
+
+The palette (`color`) then maps the density to a color -- a lerp from an edge color to a core color, scaled by density and a global intensity -- or writes plain grayscale when disabled. Every noise generator is built once per rebuild in `NebulaField::new`, and the scalar parameters are flattened in so the per-pixel `nebula_density` never touches `SkyboxParams`.
 
 ## Debug tooling
 

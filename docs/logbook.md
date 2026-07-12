@@ -180,3 +180,27 @@ Next
 - The palette (density -> color) in a new `skybox/color.rs`: a cosine palette (after Inigo Quilez), tunable live.
 - Then a ridged detail layer and a star field.
 - Raise the bake resolution, or move generation into `skybox.wgsl` for full sharpness.
+
+## 2026-07-12 -- Palette, warp mask, and studying the reference's slope filaments
+
+Done
+
+- Added the palette (`skybox/color.rs`): a `Palette` maps the density to a color by lerping an edge color to a core color, scaled by density and a global intensity -- shipped as a simple ramp rather than the planned cosine palette. The cubemap now writes color (or grayscale when the palette is off) instead of the placeholder grayscale.
+- Added a warp-amplitude mask: an FBM sampled at the un-warped direction, shaped by optional levels and contrast, modulating the domain-warp displacement per region (calm vs turbulent zones).
+- Reorganised `SkyboxParams` into one struct per filter stage (`Warp`/`Ridge`/`Mask`/`Palette`/`Gamma`/`Levels`/`Contrast`), each independently toggleable and tunable, and gave the ridge and masks their own optional levels/contrast/gamma shaping.
+- Removed a dead import and completed the inline documentation across the whole skybox module and `utils` (module, struct, field and function docs).
+
+Learned
+
+- The reference (Aleksandr Chernoschokov's Substance Designer nebula) builds its filaments with a Slope Blur (an iterative directional blur along a gradient) and a flow-map-driven Vector Warp. Both are image-space, neighbourhood-based filters -- a different paradigm from our per-direction analytic sampling, where each texel is a closed-form function with no access to neighbours. Slope blur, highpass and median cannot be expressed as point functions; matching them faithfully would mean a texture-space post-process pass over the baked cubemap.
+- Connected filaments come from aligning matter to a coherent vector field: slope blur advects along the gradient's streamlines, so the smeared matter forms unbroken threads. Ridged noise has no such field, so it fragments. The analytic route to connectivity is therefore a cellular structure or a coherent (curl/flow) warp -- not a "better" ridged noise.
+- Worley/Voronoi cell edges (F2 - F1) give a connected wall network by construction: space is partitioned, and borders are shared between adjacent cells. The `noise` crate's `Worley` returns only F1 (nearest-site distance), and its neighbour traversal is pruned for F1, so a clean F2 - F1 needs a hand-rolled Voronoi (a full 3x3x3 scan keeping the two nearest sites). `Worley` is also not a `MultiFractal` (no octaves) and holds an `Rc`, so it is `!Send` unlike `RidgedMulti`.
+- Curl noise (Bridson) yields a divergence-free, swirling displacement from the curl of a noise potential, computed by finite differences; being a static spatial field, it is exactly what a non-animated warp wants.
+- A flow map is a static 2D (UV-space) warp field whose purpose is animation; on a per-direction sphere it fights the hairy-ball theorem (seams). Our `domain_warp` is already the analytic equivalent of a warp field -- what it lacks is a coherent field driving the displacement `r`.
+- Verified the crate's behaviour by reading the installed `noise` source directly (the F1-only return, the F1-pruned traversal), rather than trusting memory.
+
+Next
+
+- Revamp the colors (next session's focus).
+- If the ridged structure keeps reading as fragmented, take the analytic connectivity leads: a hand-rolled Voronoi F2 - F1 for connected walls, and/or a curl-noise warp for coherent filaments.
+- Still open: raise the bake resolution, or move generation into `skybox.wgsl` for full sharpness.
