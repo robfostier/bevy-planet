@@ -16,7 +16,7 @@ use bevy_inspector_egui::{
 };
 
 use crate::skybox::{
-    ContrastParams, GammaParams, HueParams, LevelsParams, MaskParams, NoiseParams, PaletteParams,
+    ContrastParams, DriftParams, GammaParams, LevelsParams, MaskParams, NoiseParams, PaletteParams,
     RidgeParams, SkyboxParams, WarpParams,
 };
 
@@ -75,7 +75,7 @@ impl Plugin for DevToolsPlugin {
             .register_type::<RidgeParams>()
             .register_type::<WarpParams>()
             .register_type::<MaskParams>()
-            .register_type::<HueParams>()
+            .register_type::<DriftParams>()
             .register_type::<PaletteParams>()
             .register_type::<SkyboxParams>()
             .add_plugins((

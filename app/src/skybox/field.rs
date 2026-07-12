@@ -93,11 +93,25 @@ pub(super) struct NebulaField {
     hue_levels: (f32, f32),
     /// Whether the hue levels remap is applied.
     hue_levels_enabled: bool,
+    /// Noise driving the spatial hue drift of the palette.
+    drift_noise: Fbm<Perlin>,
+    /// Whether the palette hue drift is applied.
+    drift_enabled: bool,
+    /// Contrast strength for the drift mask.
+    drift_contrast: f32,
+    /// Whether the drift contrast is applied.
+    drift_contrast_enabled: bool,
+    /// Levels `(floor, ceil)` remap for the drift mask.
+    drift_levels: (f32, f32),
+    /// Whether the drift levels remap is applied.
+    drift_levels_enabled: bool,
 }
 
 pub(super) struct NebulaSample {
     pub(super) density: f32,
     pub(super) hue: f32,
+    /// Spatial value in `[0, 1]` driving the palette hue drift.
+    pub(super) drift: f32,
 }
 
 impl NebulaField {
@@ -127,12 +141,24 @@ impl NebulaField {
             gamma_enabled: params.gamma.enabled,
             levels: (params.levels.floor, params.levels.ceil),
             levels_enabled: params.levels.enabled,
-            hue_noise: build_fbm(&params.hue.noise),
-            hue_enabled: params.hue.enabled,
-            hue_contrast: params.hue.contrast.value,
-            hue_contrast_enabled: params.hue.contrast.enabled,
-            hue_levels: (params.hue.levels.floor, params.hue.levels.ceil),
-            hue_levels_enabled: params.hue.levels.enabled,
+            hue_noise: build_fbm(&params.palette.hue.noise),
+            hue_enabled: params.palette.hue.enabled,
+            hue_contrast: params.palette.hue.contrast.value,
+            hue_contrast_enabled: params.palette.hue.contrast.enabled,
+            hue_levels: (
+                params.palette.hue.levels.floor,
+                params.palette.hue.levels.ceil,
+            ),
+            hue_levels_enabled: params.palette.hue.levels.enabled,
+            drift_noise: build_fbm(&params.palette.drift.noise),
+            drift_enabled: params.palette.drift.enabled,
+            drift_contrast: params.palette.drift.contrast.value,
+            drift_contrast_enabled: params.palette.drift.contrast.enabled,
+            drift_levels: (
+                params.palette.drift.levels.floor,
+                params.palette.drift.levels.ceil,
+            ),
+            drift_levels_enabled: params.palette.drift.levels.enabled,
         }
     }
 }
@@ -254,5 +280,22 @@ pub(super) fn sample_nebula(direction: Vec3, field: &NebulaField) -> NebulaSampl
         0.5
     };
 
-    NebulaSample { density, hue }
+    let drift = if field.drift_enabled {
+        let mut d = ((field.drift_noise.get(point.to_array()) + 1.0) * 0.5) as f32;
+        if field.drift_levels_enabled {
+            d = smoothstep(levels(d, field.drift_levels.0, field.drift_levels.1));
+        }
+        if field.drift_contrast_enabled {
+            d = contrast(d, field.drift_contrast);
+        }
+        d
+    } else {
+        0.0
+    };
+
+    NebulaSample {
+        density,
+        hue,
+        drift,
+    }
 }

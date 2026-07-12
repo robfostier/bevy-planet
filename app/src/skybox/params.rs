@@ -101,23 +101,31 @@ pub(crate) struct MaskParams {
     pub(crate) levels: LevelsParams,
 }
 
-/// Hue field: a noise sampled at the warped direction, shaped by optional levels
-/// (to stretch its narrow native range onto the full palette) and contrast, feeding
-/// the palette lookup. When disabled, the hue is a constant -- the whole nebula
-/// then takes a single color.
+/// Spatial hue-drift stage: a mask (shaped by contrast/levels) whose value rotates the
+/// whole palette's hue across the sky, plus how far it rotates and its direction bias.
 #[derive(Reflect, InspectorOptions)]
 #[reflect(InspectorOptions)]
-pub(crate) struct HueParams {
-    /// Whether the hue varies across space; when off, a constant hue is used.
+pub(crate) struct DriftParams {
+    /// Whether the palette hue drift is applied.
     pub(crate) enabled: bool,
-    /// The noise field driving the hue.
+    /// The noise field driving the drift.
     pub(crate) noise: NoiseParams,
-    /// Optional contrast shaping the hue.
+    /// Optional contrast shaping the drift mask.
     pub(crate) contrast: ContrastParams,
-    /// Optional levels remap -- the stretch that fills the palette range.
+    /// Optional levels remap shaping the drift mask.
     pub(crate) levels: LevelsParams,
+    /// Maximum hue rotation, in degrees, spanned by the drift.
+    #[inspector(min = 0.0, max = 360.0)]
+    pub(crate) degrees: f32,
+    /// Direction bias: 0 centers the rotation (both ways along the hue wheel), -1 and
+    /// +1 send it all one way or the other. Which tint each way lands on depends on
+    /// the chosen colors.
+    #[inspector(min = -1.0, max = 1.0, speed = 0.01)]
+    pub(crate) center: f32,
 }
 
+/// All the color information: the two ramp colors, their global intensity, the hue
+/// field selecting each pixel's tint, and the spatial drift of the whole ramp.
 #[derive(Reflect, InspectorOptions)]
 #[reflect(InspectorOptions)]
 pub(crate) struct PaletteParams {
@@ -129,6 +137,10 @@ pub(crate) struct PaletteParams {
     pub(crate) secondary_color: Vec3,
     /// Multiplies the final color, allowing the nebula to be dimmed or brightened.
     pub(crate) intensity: f32,
+    /// Hue field selecting each pixel's tint along the ramp.
+    pub(crate) hue: MaskParams,
+    /// Spatial hue drift of the whole ramp across the sky.
+    pub(crate) drift: DriftParams,
 }
 
 /// Live-tunable parameters for the procedural skybox, edited at runtime through
@@ -142,9 +154,7 @@ pub(crate) struct SkyboxParams {
     pub(crate) ridge: RidgeParams,
     /// Global density mask carving the large-scale voids.
     pub(crate) mask: MaskParams,
-    /// Hue field feeding the palette lookup (sampled at the warped direction).
-    pub(crate) hue: HueParams,
-    /// Color ramp from density; grayscale when disabled.
+    /// All color information: ramp colors, hue selection, and spatial drift.
     pub(crate) palette: PaletteParams,
     /// Final gamma applied to the density.
     pub(crate) gamma: GammaParams,
@@ -176,7 +186,7 @@ impl Default for SkyboxParams {
                     },
                     contrast: ContrastParams {
                         enabled: false,
-                        value: 2.0,
+                        value: 1.0,
                     },
                     levels: LevelsParams {
                         enabled: false,
@@ -196,13 +206,13 @@ impl Default for SkyboxParams {
                 },
                 gamma: GammaParams {
                     enabled: true,
-                    value: 2.0,
+                    value: 1.5,
                 },
             },
             mask: MaskParams {
                 enabled: true,
                 noise: NoiseParams {
-                    seed: 0,
+                    seed: 18,
                     frequency: 1.0,
                     octaves: 3,
                     lacunarity: 2.0,
@@ -218,34 +228,55 @@ impl Default for SkyboxParams {
                     ceil: 1.0,
                 },
             },
-            hue: HueParams {
-                enabled: true,
-                noise: NoiseParams {
-                    seed: 4,
-                    frequency: 8.0,
-                    octaves: 3,
-                    lacunarity: 2.0,
-                    persistence: 0.5,
-                },
-                contrast: ContrastParams {
-                    enabled: true,
-                    value: 1.8,
-                },
-                levels: LevelsParams {
-                    enabled: false,
-                    floor: 0.4,
-                    ceil: 0.6,
-                },
-            },
             palette: PaletteParams {
                 enabled: false,
-                primary_color: Vec3::new(0.0, 0.2, 0.35),
-                secondary_color: Vec3::new(0.8, 0.1, 0.0),
+                primary_color: Vec3::new(0.4, 0.15, 0.0),
+                secondary_color: Vec3::new(0.01, 0.12, 0.35),
                 intensity: 0.55,
+                hue: MaskParams {
+                    enabled: true,
+                    noise: NoiseParams {
+                        seed: 0,
+                        frequency: 4.0,
+                        octaves: 1,
+                        lacunarity: 2.0,
+                        persistence: 0.5,
+                    },
+                    contrast: ContrastParams {
+                        enabled: true,
+                        value: 6.0,
+                    },
+                    levels: LevelsParams {
+                        enabled: true,
+                        floor: 0.15,
+                        ceil: 1.0,
+                    },
+                },
+                drift: DriftParams {
+                    enabled: true,
+                    noise: NoiseParams {
+                        seed: 0,
+                        frequency: 0.5,
+                        octaves: 1,
+                        lacunarity: 2.0,
+                        persistence: 0.5,
+                    },
+                    contrast: ContrastParams {
+                        enabled: false,
+                        value: 1.0,
+                    },
+                    levels: LevelsParams {
+                        enabled: false,
+                        floor: 0.0,
+                        ceil: 1.0,
+                    },
+                    degrees: 80.0,
+                    center: -1.0,
+                },
             },
             gamma: GammaParams {
                 enabled: false,
-                value: 1.2,
+                value: 1.0,
             },
             levels: LevelsParams {
                 enabled: false,

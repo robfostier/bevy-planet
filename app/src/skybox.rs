@@ -9,7 +9,7 @@ mod field;
 mod params;
 
 pub(crate) use params::{
-    ContrastParams, GammaParams, HueParams, LevelsParams, MaskParams, NoiseParams, PaletteParams,
+    ContrastParams, DriftParams, GammaParams, LevelsParams, MaskParams, NoiseParams, PaletteParams,
     RidgeParams, SkyboxParams, WarpParams,
 };
 
