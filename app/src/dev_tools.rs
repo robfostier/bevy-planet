@@ -16,8 +16,8 @@ use bevy_inspector_egui::{
 };
 
 use crate::skybox::{
-    ContrastParams, GammaParams, LevelsParams, MaskParams, NoiseParams, PaletteParams, RidgeParams,
-    SkyboxParams, WarpParams,
+    ContrastParams, GammaParams, HueParams, LevelsParams, MaskParams, NoiseParams, PaletteParams,
+    RidgeParams, SkyboxParams, WarpParams,
 };
 
 /// Spawns a dedicated 2D overlay camera for the egui inspector, so egui stops
@@ -75,6 +75,7 @@ impl Plugin for DevToolsPlugin {
             .register_type::<RidgeParams>()
             .register_type::<WarpParams>()
             .register_type::<MaskParams>()
+            .register_type::<HueParams>()
             .register_type::<PaletteParams>()
             .register_type::<SkyboxParams>()
             .add_plugins((

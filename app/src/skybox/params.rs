@@ -101,15 +101,32 @@ pub(crate) struct MaskParams {
     pub(crate) levels: LevelsParams,
 }
 
+/// Hue field: a noise sampled at the warped direction, shaped by optional levels
+/// (to stretch its narrow native range onto the full palette) and contrast, feeding
+/// the palette lookup. When disabled, the hue is a constant -- the whole nebula
+/// then takes a single color.
+#[derive(Reflect, InspectorOptions)]
+#[reflect(InspectorOptions)]
+pub(crate) struct HueParams {
+    /// Whether the hue varies across space; when off, a constant hue is used.
+    pub(crate) enabled: bool,
+    /// The noise field driving the hue.
+    pub(crate) noise: NoiseParams,
+    /// Optional contrast shaping the hue.
+    pub(crate) contrast: ContrastParams,
+    /// Optional levels remap -- the stretch that fills the palette range.
+    pub(crate) levels: LevelsParams,
+}
+
 #[derive(Reflect, InspectorOptions)]
 #[reflect(InspectorOptions)]
 pub(crate) struct PaletteParams {
     /// Whether the palette is applied; when off, the density shows as grayscale.
     pub(crate) enabled: bool,
-    /// The base color of the nebula's core.
-    pub(crate) core_color: Vec3,
-    /// The base color of the nebula's edge.
-    pub(crate) edge_color: Vec3,
+    /// Color at hue = 1 (one end of the ramp).
+    pub(crate) primary_color: Vec3,
+    /// Color at hue = 0 (the other end of the ramp).
+    pub(crate) secondary_color: Vec3,
     /// Multiplies the final color, allowing the nebula to be dimmed or brightened.
     pub(crate) intensity: f32,
 }
@@ -125,6 +142,8 @@ pub(crate) struct SkyboxParams {
     pub(crate) ridge: RidgeParams,
     /// Global density mask carving the large-scale voids.
     pub(crate) mask: MaskParams,
+    /// Hue field feeding the palette lookup (sampled at the warped direction).
+    pub(crate) hue: HueParams,
     /// Color ramp from density; grayscale when disabled.
     pub(crate) palette: PaletteParams,
     /// Final gamma applied to the density.
@@ -138,7 +157,7 @@ impl Default for SkyboxParams {
         Self {
             warp: WarpParams {
                 enabled: false,
-                strength: 0.2,
+                strength: 0.3,
                 noise: NoiseParams {
                     seed: 0,
                     frequency: 3.0,
@@ -147,27 +166,27 @@ impl Default for SkyboxParams {
                     persistence: 0.25,
                 },
                 mask: MaskParams {
-                    enabled: false,
+                    enabled: true,
                     noise: NoiseParams {
                         seed: 0,
-                        frequency: 4.0,
-                        octaves: 4,
+                        frequency: 6.0,
+                        octaves: 3,
                         lacunarity: 2.0,
                         persistence: 0.5,
                     },
                     contrast: ContrastParams {
-                        enabled: true,
+                        enabled: false,
                         value: 2.0,
                     },
                     levels: LevelsParams {
-                        enabled: true,
-                        floor: 0.05,
-                        ceil: 0.9,
+                        enabled: false,
+                        floor: 0.0,
+                        ceil: 1.0,
                     },
                 },
             },
             ridge: RidgeParams {
-                enabled: false,
+                enabled: true,
                 noise: NoiseParams {
                     seed: 0,
                     frequency: 4.0,
@@ -177,7 +196,7 @@ impl Default for SkyboxParams {
                 },
                 gamma: GammaParams {
                     enabled: true,
-                    value: 2.5,
+                    value: 2.0,
                 },
             },
             mask: MaskParams {
@@ -191,7 +210,7 @@ impl Default for SkyboxParams {
                 },
                 contrast: ContrastParams {
                     enabled: true,
-                    value: 1.2,
+                    value: 1.5,
                 },
                 levels: LevelsParams {
                     enabled: true,
@@ -199,14 +218,33 @@ impl Default for SkyboxParams {
                     ceil: 1.0,
                 },
             },
+            hue: HueParams {
+                enabled: true,
+                noise: NoiseParams {
+                    seed: 4,
+                    frequency: 8.0,
+                    octaves: 3,
+                    lacunarity: 2.0,
+                    persistence: 0.5,
+                },
+                contrast: ContrastParams {
+                    enabled: true,
+                    value: 1.8,
+                },
+                levels: LevelsParams {
+                    enabled: false,
+                    floor: 0.4,
+                    ceil: 0.6,
+                },
+            },
             palette: PaletteParams {
                 enabled: false,
-                core_color: Vec3::new(0.0, 0.6, 1.0),
-                edge_color: Vec3::new(0.4, 0.15, 0.0),
-                intensity: 1.3,
+                primary_color: Vec3::new(0.0, 0.2, 0.35),
+                secondary_color: Vec3::new(0.8, 0.1, 0.0),
+                intensity: 0.55,
             },
             gamma: GammaParams {
-                enabled: true,
+                enabled: false,
                 value: 1.2,
             },
             levels: LevelsParams {

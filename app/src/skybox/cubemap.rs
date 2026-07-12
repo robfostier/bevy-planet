@@ -1,5 +1,6 @@
-//! Turns the scalar `nebula_density` field into a 6-face cubemap `Image`: maps
-//! each face pixel to a direction, samples the density, writes the texels.
+//! Turns the `sample_nebula` field into a 6-face cubemap `Image`: maps each face
+//! pixel to a direction, samples the nebula, colors it through the palette, and
+//! writes the texels.
 
 use bevy::{
     asset::RenderAssetUsages,
@@ -11,7 +12,7 @@ use bevy::{
 
 use super::{
     color::{Palette, nebula_color},
-    field::{NebulaField, nebula_density},
+    field::{NebulaField, sample_nebula},
 };
 
 /// Maps a pixel position `(u, v)` (each in `[-1, 1]`) on cubemap face
@@ -30,8 +31,8 @@ fn face_uv_to_direction(face_index: usize, u: f32, v: f32) -> Vec3 {
 }
 
 /// Renders one cubemap face into raw RGBA32-float pixel bytes by sampling
-/// `nebula_density` once per pixel, then mapping that density to a color through
-/// the palette -- or to plain grayscale when the palette is disabled.
+/// `sample_nebula` once per pixel, then mapping the sample to a color through the
+/// palette -- or to plain grayscale (the density) when the palette is disabled.
 fn build_face_pixels(
     face_index: usize,
     resolution: u32,
@@ -48,11 +49,12 @@ fn build_face_pixels(
             // matching the ray.z negation done in skybox.wgsl's fragment shader.
             let sample_direction = direction * Vec3::new(1.0, 1.0, -1.0);
 
-            let density = nebula_density(sample_direction, field);
+            let samples = sample_nebula(sample_direction, field);
+
             let color = if palette.enabled {
-                nebula_color(density, palette)
+                nebula_color(samples, palette)
             } else {
-                Vec3::splat(density)
+                Vec3::splat(samples.density)
             };
 
             for channel in [color.x, color.y, color.z, 1.0] {

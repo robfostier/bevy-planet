@@ -2,7 +2,8 @@
 //! is a ridged-noise structure multiplied by a smooth density mask, then shaped by
 //! a global gamma and levels pass. Before sampling, the direction is optionally
 //! domain-warped (after Inigo Quilez, <https://iquilezles.org/articles/warp/>) to
-//! turn plain blobs into swirling filaments.
+//! turn plain blobs into swirling filaments. Alongside the density, each sample
+//! carries a hue (a separate warped noise) that feeds the palette in `color`.
 
 use bevy::{math::DVec3, prelude::*};
 use noise::{Fbm, MultiFractal, NoiseFn, Perlin, RidgedMulti};
@@ -80,6 +81,23 @@ pub(super) struct NebulaField {
     levels: (f32, f32),
     /// Whether the global levels remap is applied.
     levels_enabled: bool,
+    /// Noise driving the hue fed to the palette lookup.
+    hue_noise: Fbm<Perlin>,
+    /// Whether the hue varies across space; when off, a constant hue is used.
+    hue_enabled: bool,
+    /// Contrast strength for the hue.
+    hue_contrast: f32,
+    /// Whether the hue contrast is applied.
+    hue_contrast_enabled: bool,
+    /// Levels `(floor, ceil)` remap stretching the hue's narrow native range.
+    hue_levels: (f32, f32),
+    /// Whether the hue levels remap is applied.
+    hue_levels_enabled: bool,
+}
+
+pub(super) struct NebulaSample {
+    pub(super) density: f32,
+    pub(super) hue: f32,
 }
 
 impl NebulaField {
@@ -109,6 +127,12 @@ impl NebulaField {
             gamma_enabled: params.gamma.enabled,
             levels: (params.levels.floor, params.levels.ceil),
             levels_enabled: params.levels.enabled,
+            hue_noise: build_fbm(&params.hue.noise),
+            hue_enabled: params.hue.enabled,
+            hue_contrast: params.hue.contrast.value,
+            hue_contrast_enabled: params.hue.contrast.enabled,
+            hue_levels: (params.hue.levels.floor, params.hue.levels.ceil),
+            hue_levels_enabled: params.hue.levels.enabled,
         }
     }
 }
@@ -120,7 +144,7 @@ impl NebulaField {
 /// When the warp mask is enabled, its noise -- sampled at the original position and
 /// shaped by optional levels and contrast -- modulates the displacement amplitude,
 /// so the warp can rage in some regions and stay calm in others. The final density
-/// lookup happens back in `nebula_density`, at the returned position.
+/// lookup happens back in `sample_nebula`, at the returned position.
 fn domain_warp(point: DVec3, field: &NebulaField) -> DVec3 {
     let q: DVec3 = DVec3::new(
         field
@@ -172,12 +196,13 @@ fn domain_warp(point: DVec3, field: &NebulaField) -> DVec3 {
     }
 }
 
-/// Nebula density in a given direction, in `[0, 1]`. Optionally domain-warps the
-/// direction, then multiplies a ridged-noise structure by a smooth density mask
-/// (each remapped from the noise crate's native `[-1, 1]` to `[0, 1]`), and finally
-/// shapes the result with a global gamma and levels pass. Color comes later, in
-/// `color::nebula_color`.
-pub(super) fn nebula_density(direction: Vec3, field: &NebulaField) -> f32 {
+/// Samples the nebula in a given direction, returning a `NebulaSample`: a density in
+/// `[0, 1]` and a hue. Optionally domain-warps the direction, then builds the density
+/// by multiplying a ridged-noise structure by a smooth density mask (both sampled at
+/// the warped point), shaped by a global gamma and levels pass. The hue -- a separate
+/// noise sampled at the same warped point, stretched by its own levels -- feeds the
+/// palette lookup in `color::nebula_color`.
+pub(super) fn sample_nebula(direction: Vec3, field: &NebulaField) -> NebulaSample {
     // 1. apply domain warp
     let point = if field.warp_enabled {
         domain_warp(direction.as_dvec3(), field)
@@ -198,7 +223,7 @@ pub(super) fn nebula_density(direction: Vec3, field: &NebulaField) -> f32 {
 
     // 3. apply global density mask
     if field.mask_enabled {
-        let mut mask = ((field.mask_noise.get(direction.as_dvec3().to_array()) + 1.0) * 0.5) as f32;
+        let mut mask = ((field.mask_noise.get(point.to_array()) + 1.0) * 0.5) as f32;
         if field.mask_levels_enabled {
             mask = smoothstep(levels(mask, field.mask_levels.0, field.mask_levels.1));
         }
@@ -216,5 +241,18 @@ pub(super) fn nebula_density(direction: Vec3, field: &NebulaField) -> f32 {
         density = levels(density, field.levels.0, field.levels.1);
     }
 
-    density
+    let hue = if field.hue_enabled {
+        let mut hue = ((field.hue_noise.get(point.to_array()) + 1.0) * 0.5) as f32;
+        if field.hue_levels_enabled {
+            hue = levels(hue, field.hue_levels.0, field.hue_levels.1);
+        }
+        if field.hue_contrast_enabled {
+            hue = contrast(hue, field.hue_contrast);
+        }
+        hue
+    } else {
+        0.5
+    };
+
+    NebulaSample { density, hue }
 }

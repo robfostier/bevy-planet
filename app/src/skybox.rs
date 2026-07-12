@@ -9,8 +9,8 @@ mod field;
 mod params;
 
 pub(crate) use params::{
-    ContrastParams, GammaParams, LevelsParams, MaskParams, NoiseParams, PaletteParams, RidgeParams,
-    SkyboxParams, WarpParams,
+    ContrastParams, GammaParams, HueParams, LevelsParams, MaskParams, NoiseParams, PaletteParams,
+    RidgeParams, SkyboxParams, WarpParams,
 };
 
 use bevy::{image::Image, prelude::*};
