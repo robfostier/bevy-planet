@@ -3,19 +3,24 @@
 //! generation lives in `field`, the cubemap assembly in `cubemap`, the tunable
 //! parameters in `params`.
 
+mod color;
 mod cubemap;
 mod field;
 mod params;
 
-pub(crate) use params::{NoiseParams, SkyboxParams};
+pub(crate) use params::{
+    ContrastParams, GammaParams, LevelsParams, MaskParams, NoiseParams, PaletteParams, RidgeParams,
+    SkyboxParams, WarpParams,
+};
 
 use bevy::{image::Image, prelude::*};
+use color::Palette;
 use cubemap::build_skybox_cubemap_image;
 use field::NebulaField;
 
 /// Resolution, per face, of the baked cubemap. Kept low while iterating; raise it
 /// for a sharper sky at the cost of a longer bake.
-const SKYBOX_RES: u32 = 256;
+const SKYBOX_RES: u32 = 512;
 
 /// Regenerates the skybox cubemap whenever `SkyboxParams` changes and writes the
 /// fresh image into the pre-reserved `SkyboxCubemap` handle, so the orbit camera's
@@ -28,7 +33,8 @@ fn rebuild_skybox_cubemap(
     mut images: ResMut<Assets<Image>>,
 ) {
     let field = NebulaField::new(&params);
-    let image = build_skybox_cubemap_image(SKYBOX_RES, &field);
+    let palette = Palette::new(&params);
+    let image = build_skybox_cubemap_image(SKYBOX_RES, &field, &palette);
     let _ = images.insert(cubemap.0.id(), image);
 }
 

@@ -88,7 +88,7 @@ fn spawn_orbit_camera(mut commands: Commands, cubemap: Res<SkyboxCubemap>) {
         },
         Skybox {
             image: Some(cubemap.0.clone()),
-            brightness: 1e4,
+            brightness: 1e5,
             ..default()
         },
     ));

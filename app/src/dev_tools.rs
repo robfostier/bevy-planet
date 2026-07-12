@@ -15,7 +15,10 @@ use bevy_inspector_egui::{
     bevy_inspector,
 };
 
-use crate::skybox::{NoiseParams, SkyboxParams};
+use crate::skybox::{
+    ContrastParams, GammaParams, LevelsParams, MaskParams, NoiseParams, PaletteParams, RidgeParams,
+    SkyboxParams, WarpParams,
+};
 
 /// Spawns a dedicated 2D overlay camera for the egui inspector, so egui stops
 /// piggybacking on the HDR orbit camera (where the skybox pass drew over it). It
@@ -66,6 +69,13 @@ pub struct DevToolsPlugin;
 impl Plugin for DevToolsPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<NoiseParams>()
+            .register_type::<ContrastParams>()
+            .register_type::<LevelsParams>()
+            .register_type::<GammaParams>()
+            .register_type::<RidgeParams>()
+            .register_type::<WarpParams>()
+            .register_type::<MaskParams>()
+            .register_type::<PaletteParams>()
             .register_type::<SkyboxParams>()
             .add_plugins((
                 EguiPlugin::default(),

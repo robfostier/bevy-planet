@@ -9,7 +9,10 @@ use bevy::{
     },
 };
 
-use super::field::{NebulaField, nebula_density};
+use super::{
+    color::{Palette, nebula_color},
+    field::{NebulaField, nebula_density},
+};
 
 /// Maps a pixel position `(u, v)` (each in `[-1, 1]`) on cubemap face
 /// `face_index` to the world-space direction it represents.
@@ -27,9 +30,14 @@ fn face_uv_to_direction(face_index: usize, u: f32, v: f32) -> Vec3 {
 }
 
 /// Renders one cubemap face into raw RGBA32-float pixel bytes by sampling
-/// `nebula_density` once per pixel. This is a placeholder grayscale
-/// rendering -- just enough to confirm the pipeline works end-to-end.
-fn build_face_pixels(face_index: usize, resolution: u32, field: &NebulaField) -> Vec<u8> {
+/// `nebula_density` once per pixel, then mapping that density to a color through
+/// the palette -- or to plain grayscale when the palette is disabled.
+fn build_face_pixels(
+    face_index: usize,
+    resolution: u32,
+    field: &NebulaField,
+    palette: &Palette,
+) -> Vec<u8> {
     let mut bytes = Vec::with_capacity(resolution as usize * resolution as usize * 16);
     for y in 0..resolution {
         for x in 0..resolution {
@@ -39,8 +47,15 @@ fn build_face_pixels(face_index: usize, resolution: u32, field: &NebulaField) ->
             // Negate Z so the noise is sampled in the cubemap's left-handed frame,
             // matching the ray.z negation done in skybox.wgsl's fragment shader.
             let sample_direction = direction * Vec3::new(1.0, 1.0, -1.0);
+
             let density = nebula_density(sample_direction, field);
-            for channel in [density, density, density, 1.0] {
+            let color = if palette.enabled {
+                nebula_color(density, palette)
+            } else {
+                Vec3::splat(density)
+            };
+
+            for channel in [color.x, color.y, color.z, 1.0] {
                 bytes.extend_from_slice(&channel.to_le_bytes());
             }
         }
@@ -50,9 +65,13 @@ fn build_face_pixels(face_index: usize, resolution: u32, field: &NebulaField) ->
 
 /// Builds the full 6-face cubemap `Image`, ready to be assigned to a
 /// `Skybox`'s `image` field.
-pub(super) fn build_skybox_cubemap_image(resolution: u32, field: &NebulaField) -> Image {
+pub(super) fn build_skybox_cubemap_image(
+    resolution: u32,
+    field: &NebulaField,
+    palette: &Palette,
+) -> Image {
     let data = (0..6)
-        .flat_map(|face_index| build_face_pixels(face_index, resolution, field))
+        .flat_map(|face_index| build_face_pixels(face_index, resolution, field, palette))
         .collect();
 
     Image {

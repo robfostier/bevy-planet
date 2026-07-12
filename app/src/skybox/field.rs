@@ -1,11 +1,13 @@
-//! Nebula generation: a scalar density field sampled per direction. Domain
-//! warping (after Inigo Quilez, <https://iquilezles.org/articles/warp/>) turns
-//! plain FBM blobs into swirling filaments before the final density lookup.
+//! Nebula generation: a scalar density field sampled per direction. The density
+//! is a ridged-noise structure multiplied by a smooth density mask, then shaped by
+//! a global gamma and levels pass. Before sampling, the direction is optionally
+//! domain-warped (after Inigo Quilez, <https://iquilezles.org/articles/warp/>) to
+//! turn plain blobs into swirling filaments.
 
 use bevy::{math::DVec3, prelude::*};
-use noise::{Fbm, MultiFractal, NoiseFn, Perlin};
+use noise::{Fbm, MultiFractal, NoiseFn, Perlin, RidgedMulti};
 
-use crate::utils::levels;
+use crate::utils::{contrast, gamma, levels, smoothstep};
 
 use super::params::{NoiseParams, SkyboxParams};
 
@@ -18,37 +20,107 @@ fn build_fbm(params: &NoiseParams) -> Fbm<Perlin> {
         .set_persistence(params.persistence)
 }
 
+/// Builds a configured `RidgedMulti<Perlin>` from a `NoiseParams`: sharp-ridged
+/// fractal noise, used to carve the nebula's filament structure.
+fn build_ridged(params: &NoiseParams) -> RidgedMulti<Perlin> {
+    RidgedMulti::<Perlin>::new(params.seed)
+        .set_octaves(params.octaves)
+        .set_frequency(params.frequency)
+        .set_lacunarity(params.lacunarity)
+        .set_persistence(params.persistence)
+}
+
 /// A ready-to-sample nebula generator, built once per rebuild from `SkyboxParams`:
-/// the heavy `Fbm` instances are configured up front and reused for every pixel.
+/// the noise generators (ridge, density mask, warp) are configured up front and
+/// reused for every pixel, alongside the flattened filter parameters they feed.
 pub(super) struct NebulaField {
-    /// Detailed field, read at the warped position for the final density.
-    density_noise: Fbm<Perlin>,
-    /// Density remapping levels: `(floor, ceil)` maps the raw density to `[0, 1]`.
-    density_levels: (f32, f32),
-    /// Smooth field, used to build the domain-warp displacement.
+    /// Ridged fractal noise forming the filament structure.
+    ridged_noise: RidgedMulti<Perlin>,
+    /// Whether the ridge is multiplied into the density.
+    ridge_enabled: bool,
+    /// Gamma exponent shaping the ridge's falloff.
+    ridge_gamma: f32,
+    /// Whether the ridge gamma is applied.
+    ridge_gamma_enabled: bool,
+    /// Noise for the global density mask.
+    mask_noise: Fbm<Perlin>,
+    /// Whether the density mask is applied.
+    mask_enabled: bool,
+    /// Contrast strength for the density mask.
+    mask_contrast: f32,
+    /// Whether the mask contrast is applied.
+    mask_contrast_enabled: bool,
+    /// Levels `(floor, ceil)` remap for the density mask.
+    mask_levels: (f32, f32),
+    /// Whether the mask levels remap is applied.
+    mask_levels_enabled: bool,
+    /// Noise driving the domain-warp displacement.
     warp_noise: Fbm<Perlin>,
-    /// Displacement strength of the domain warp.
+    /// How far the warp pushes the sampling position.
     warp_strength: f64,
+    /// Whether the direction is domain-warped.
+    warp_enabled: bool,
+    /// Noise for the warp-amplitude mask.
+    warp_mask_noise: Fbm<Perlin>,
+    /// Whether the warp mask modulates the displacement amplitude.
+    warp_mask_enabled: bool,
+    /// Contrast strength for the warp mask.
+    warp_mask_contrast: f32,
+    /// Whether the warp mask contrast is applied.
+    warp_mask_contrast_enabled: bool,
+    /// Levels `(floor, ceil)` remap for the warp mask.
+    warp_mask_levels: (f32, f32),
+    /// Whether the warp mask levels remap is applied.
+    warp_mask_levels_enabled: bool,
+    /// Global gamma exponent on the final density.
+    gamma: f32,
+    /// Whether the global gamma is applied.
+    gamma_enabled: bool,
+    /// Global levels `(floor, ceil)` remap on the final density.
+    levels: (f32, f32),
+    /// Whether the global levels remap is applied.
+    levels_enabled: bool,
 }
 
 impl NebulaField {
     /// Builds the generator from the tunable parameters.
     pub(super) fn new(params: &SkyboxParams) -> Self {
         Self {
-            density_noise: build_fbm(&params.density),
-            density_levels: (params.density_levels_floor, params.density_levels_ceil),
-            warp_noise: build_fbm(&params.warp),
-            warp_strength: params.warp_strength,
+            ridged_noise: build_ridged(&params.ridge.noise),
+            ridge_enabled: params.ridge.enabled,
+            ridge_gamma: params.ridge.gamma.value,
+            ridge_gamma_enabled: params.ridge.gamma.enabled,
+            mask_noise: build_fbm(&params.mask.noise),
+            mask_enabled: params.mask.enabled,
+            mask_contrast: params.mask.contrast.value,
+            mask_contrast_enabled: params.mask.contrast.enabled,
+            mask_levels: (params.mask.levels.floor, params.mask.levels.ceil),
+            mask_levels_enabled: params.mask.levels.enabled,
+            warp_noise: build_fbm(&params.warp.noise),
+            warp_strength: params.warp.strength,
+            warp_enabled: params.warp.enabled,
+            warp_mask_noise: build_fbm(&params.warp.mask.noise),
+            warp_mask_enabled: params.warp.mask.enabled,
+            warp_mask_contrast: params.warp.mask.contrast.value,
+            warp_mask_contrast_enabled: params.warp.mask.contrast.enabled,
+            warp_mask_levels: (params.warp.mask.levels.floor, params.warp.mask.levels.ceil),
+            warp_mask_levels_enabled: params.warp.mask.levels.enabled,
+            gamma: params.gamma.value,
+            gamma_enabled: params.gamma.enabled,
+            levels: (params.levels.floor, params.levels.ceil),
+            levels_enabled: params.levels.enabled,
         }
     }
 }
 
 /// Domain-warps a sampling position: offsets it by a displacement built from the
-/// smooth `warp_noise`, in two nested levels (after Inigo Quilez). The final noise
-/// lookup happens in `nebula_density` at the returned position, so the full chain
-/// is three noise levels deep.
+/// smooth `warp_noise`, in two nested levels (after Inigo Quilez). `warp_strength`
+/// scales how far the position is pushed.
 ///
-/// `warp_strength` scales how far the position is pushed.
+/// When the warp mask is enabled, its noise -- sampled at the original position and
+/// shaped by optional levels and contrast -- modulates the displacement amplitude,
+/// so the warp can rage in some regions and stay calm in others. The final density
+/// lookup happens back in `nebula_density`, at the returned position.
 fn domain_warp(point: DVec3, field: &NebulaField) -> DVec3 {
     let q: DVec3 = DVec3::new(
         field
@@ -79,15 +151,70 @@ fn domain_warp(point: DVec3, field: &NebulaField) -> DVec3 {
             point.z + 5.2 + field.warp_strength * q.z,
         ]),
     );
-    point + field.warp_strength * r
+
+    // mask
+    if field.warp_mask_enabled {
+        let mut mask =
+            ((field.warp_mask_noise.get([point.x, point.y, point.z]) + 1.0) * 0.5) as f32;
+        if field.warp_mask_levels_enabled {
+            mask = smoothstep(levels(
+                mask,
+                field.warp_mask_levels.0,
+                field.warp_mask_levels.1,
+            ));
+        }
+        if field.warp_mask_contrast_enabled {
+            mask = contrast(mask, field.warp_mask_contrast);
+        }
+        point + field.warp_strength * r * (mask as f64)
+    } else {
+        point + field.warp_strength * r
+    }
 }
 
-/// Nebula density in a given direction, in `[0, 1]`. Domain-warps the direction,
-/// samples `density_noise` there, and remaps the noise crate's native `[-1, 1]`
-/// range to `[0, 1]`. Still a raw density -- contrast, palette and stars come later.
+/// Nebula density in a given direction, in `[0, 1]`. Optionally domain-warps the
+/// direction, then multiplies a ridged-noise structure by a smooth density mask
+/// (each remapped from the noise crate's native `[-1, 1]` to `[0, 1]`), and finally
+/// shapes the result with a global gamma and levels pass. Color comes later, in
+/// `color::nebula_color`.
 pub(super) fn nebula_density(direction: Vec3, field: &NebulaField) -> f32 {
-    let point = domain_warp(direction.as_dvec3(), field);
-    let raw = field.density_noise.get(point.to_array());
-    let density = ((raw + 1.0) * 0.5) as f32;
-    levels(density, field.density_levels.0, field.density_levels.1)
+    // 1. apply domain warp
+    let point = if field.warp_enabled {
+        domain_warp(direction.as_dvec3(), field)
+    } else {
+        direction.as_dvec3()
+    };
+
+    let mut density = 1.0;
+
+    // 2. sample the ridged noise
+    if field.ridge_enabled {
+        let mut ridge = ((field.ridged_noise.get(point.to_array()) + 1.0) * 0.5) as f32;
+        if field.ridge_gamma_enabled {
+            ridge = gamma(ridge, field.ridge_gamma);
+        }
+        density *= ridge;
+    }
+
+    // 3. apply global density mask
+    if field.mask_enabled {
+        let mut mask = ((field.mask_noise.get(direction.as_dvec3().to_array()) + 1.0) * 0.5) as f32;
+        if field.mask_levels_enabled {
+            mask = smoothstep(levels(mask, field.mask_levels.0, field.mask_levels.1));
+        }
+        if field.mask_contrast_enabled {
+            mask = contrast(mask, field.mask_contrast);
+        }
+        density *= mask;
+    }
+
+    if field.gamma_enabled {
+        density = gamma(density, field.gamma);
+    }
+
+    if field.levels_enabled {
+        density = levels(density, field.levels.0, field.levels.1);
+    }
+
+    density
 }

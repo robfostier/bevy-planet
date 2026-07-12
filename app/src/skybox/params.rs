@@ -4,7 +4,7 @@
 use bevy::prelude::*;
 use bevy_inspector_egui::prelude::*;
 
-/// The classic FBM (fractional Brownian motion) controls for one noise field.
+/// Fractal-noise controls for one noise field, shared by the FBM and ridged generators.
 #[derive(Reflect, InspectorOptions)]
 #[reflect(InspectorOptions)]
 pub(crate) struct NoiseParams {
@@ -22,46 +22,198 @@ pub(crate) struct NoiseParams {
     pub(crate) persistence: f64,
 }
 
+/// A levels remap: rescales `[floor, ceil]` onto `[0, 1]`, clamping outside.
+#[derive(Reflect, InspectorOptions)]
+#[reflect(InspectorOptions)]
+pub(crate) struct LevelsParams {
+    /// Whether the remap is applied.
+    pub(crate) enabled: bool,
+    /// Input value that maps to 0; everything below is clamped to 0.
+    #[inspector(min = 0.0, max = 1.0, speed = 0.01)]
+    pub(crate) floor: f32,
+    /// Input value that maps to 1; everything above is clamped to 1.
+    #[inspector(min = 0.0, max = 1.0, speed = 0.01)]
+    pub(crate) ceil: f32,
+}
+
+/// A gamma curve applied to a value (`value.powf(gamma)`): below 1 brightens, above 1 darkens.
+#[derive(Reflect, InspectorOptions)]
+#[reflect(InspectorOptions)]
+pub(crate) struct GammaParams {
+    /// Whether the gamma curve is applied.
+    pub(crate) enabled: bool,
+    /// The exponent fed to `value.powf(..)`.
+    #[inspector(min = 0.1, max = 5.0, speed = 0.01)]
+    pub(crate) value: f32,
+}
+
+/// An S-curve contrast around the midpoint: higher `value` pushes tones toward 0 or 1.
+#[derive(Reflect, InspectorOptions)]
+#[reflect(InspectorOptions)]
+pub(crate) struct ContrastParams {
+    /// Whether the contrast curve is applied.
+    pub(crate) enabled: bool,
+    /// Strength of the S-curve: higher is punchier; 1.0 leaves the value unchanged.
+    pub(crate) value: f32,
+}
+
+/// Domain-warp stage: how far the sampling position is pushed, the noise that
+/// drives it, and a mask that modulates the warp amplitude per region.
+#[derive(Reflect, InspectorOptions)]
+#[reflect(InspectorOptions)]
+pub(crate) struct WarpParams {
+    /// Whether the direction is domain-warped before sampling.
+    pub(crate) enabled: bool,
+    /// How far the sampling position is pushed by the warp.
+    #[inspector(min = 0.0, max = 4.0, speed = 0.01)]
+    pub(crate) strength: f64,
+    /// The noise field that drives the displacement.
+    pub(crate) noise: NoiseParams,
+    /// Modulates the warp amplitude per region (calm vs turbulent zones).
+    pub(crate) mask: MaskParams,
+}
+
+/// Ridged-noise structure stage: the fractal that forms the nebula's filaments,
+/// with an optional gamma to shape its falloff.
+#[derive(Reflect, InspectorOptions)]
+#[reflect(InspectorOptions)]
+pub(crate) struct RidgeParams {
+    /// Whether the ridged-noise structure is multiplied into the density.
+    pub(crate) enabled: bool,
+    /// The ridged fractal noise forming the filaments.
+    pub(crate) noise: NoiseParams,
+    /// Optional gamma shaping the ridge's falloff.
+    pub(crate) gamma: GammaParams,
+}
+
+/// A mask: a noise field shaped by optional levels and contrast. Reused both as
+/// the global density mask and as the warp-amplitude mask.
+#[derive(Reflect, InspectorOptions)]
+#[reflect(InspectorOptions)]
+pub(crate) struct MaskParams {
+    /// Whether the mask is multiplied into its target.
+    pub(crate) enabled: bool,
+    /// The noise field sampled for the mask.
+    pub(crate) noise: NoiseParams,
+    /// Optional contrast shaping the mask.
+    pub(crate) contrast: ContrastParams,
+    /// Optional levels remap shaping the mask.
+    pub(crate) levels: LevelsParams,
+}
+
+#[derive(Reflect, InspectorOptions)]
+#[reflect(InspectorOptions)]
+pub(crate) struct PaletteParams {
+    /// Whether the palette is applied; when off, the density shows as grayscale.
+    pub(crate) enabled: bool,
+    /// The base color of the nebula's core.
+    pub(crate) core_color: Vec3,
+    /// The base color of the nebula's edge.
+    pub(crate) edge_color: Vec3,
+    /// Multiplies the final color, allowing the nebula to be dimmed or brightened.
+    pub(crate) intensity: f32,
+}
+
 /// Live-tunable parameters for the procedural skybox, edited at runtime through
 /// the egui inspector and consumed by `rebuild_skybox_cubemap`.
 #[derive(Reflect, Resource, InspectorOptions)]
 #[reflect(Resource, InspectorOptions)]
 pub(crate) struct SkyboxParams {
-    /// The detailed field, sampled at the warped position.
-    pub(crate) density: NoiseParams,
-    /// The smooth field that displaces the sampling position.
-    pub(crate) warp: NoiseParams,
-    /// How far the warp displaces the sampling position.
-    #[inspector(min = 0.0, max = 4.0, speed = 0.01)]
-    pub(crate) warp_strength: f64,
-    /// The density value that maps to black (0.0) in the final cubemap.
-    #[inspector(min = 0.0, max = 1.0, speed = 0.01)]
-    pub(crate) density_levels_floor: f32,
-    #[inspector(min = 0.0, max = 1.0, speed = 0.01)]
-    /// The density value that maps to white (1.0) in the final cubemap.
-    pub(crate) density_levels_ceil: f32,
+    /// Domain-warp applied to the sampling direction, before anything else.
+    pub(crate) warp: WarpParams,
+    /// Ridged-noise structure: the nebula's filaments.
+    pub(crate) ridge: RidgeParams,
+    /// Global density mask carving the large-scale voids.
+    pub(crate) mask: MaskParams,
+    /// Color ramp from density; grayscale when disabled.
+    pub(crate) palette: PaletteParams,
+    /// Final gamma applied to the density.
+    pub(crate) gamma: GammaParams,
+    /// Final levels remap applied to the density.
+    pub(crate) levels: LevelsParams,
 }
 
 impl Default for SkyboxParams {
     fn default() -> Self {
         Self {
-            density: NoiseParams {
-                seed: 0,
-                frequency: 2.0,
-                octaves: 5,
-                lacunarity: 2.0,
-                persistence: 0.5,
+            warp: WarpParams {
+                enabled: false,
+                strength: 0.2,
+                noise: NoiseParams {
+                    seed: 0,
+                    frequency: 3.0,
+                    octaves: 4,
+                    lacunarity: 4.0,
+                    persistence: 0.25,
+                },
+                mask: MaskParams {
+                    enabled: false,
+                    noise: NoiseParams {
+                        seed: 0,
+                        frequency: 4.0,
+                        octaves: 4,
+                        lacunarity: 2.0,
+                        persistence: 0.5,
+                    },
+                    contrast: ContrastParams {
+                        enabled: true,
+                        value: 2.0,
+                    },
+                    levels: LevelsParams {
+                        enabled: true,
+                        floor: 0.05,
+                        ceil: 0.9,
+                    },
+                },
             },
-            warp: NoiseParams {
-                seed: 1,
-                frequency: 1.0,
-                octaves: 2,
-                lacunarity: 2.0,
-                persistence: 0.5,
+            ridge: RidgeParams {
+                enabled: false,
+                noise: NoiseParams {
+                    seed: 0,
+                    frequency: 4.0,
+                    octaves: 3,
+                    lacunarity: 2.0,
+                    persistence: 0.5,
+                },
+                gamma: GammaParams {
+                    enabled: true,
+                    value: 2.5,
+                },
             },
-            warp_strength: 0.6,
-            density_levels_floor: 0.48,
-            density_levels_ceil: 0.71,
+            mask: MaskParams {
+                enabled: true,
+                noise: NoiseParams {
+                    seed: 0,
+                    frequency: 1.0,
+                    octaves: 3,
+                    lacunarity: 2.0,
+                    persistence: 0.5,
+                },
+                contrast: ContrastParams {
+                    enabled: true,
+                    value: 1.2,
+                },
+                levels: LevelsParams {
+                    enabled: true,
+                    floor: 0.61,
+                    ceil: 1.0,
+                },
+            },
+            palette: PaletteParams {
+                enabled: false,
+                core_color: Vec3::new(0.0, 0.6, 1.0),
+                edge_color: Vec3::new(0.4, 0.15, 0.0),
+                intensity: 1.3,
+            },
+            gamma: GammaParams {
+                enabled: true,
+                value: 1.2,
+            },
+            levels: LevelsParams {
+                enabled: false,
+                floor: 0.0,
+                ceil: 1.0,
+            },
         }
     }
 }
