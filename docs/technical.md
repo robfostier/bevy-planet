@@ -32,7 +32,7 @@ The code lives in `app/` (package `bevy-planet`): a library crate (`bevy_planet`
 | `skybox` (mvp)      | Procedural nebula cubemap for the `Skybox`; submodules below                 |
 | `skybox::params`    | Tunable generation knobs (`SkyboxParams` + per-stage filter structs)         |
 | `skybox::field`     | Density generation: warped ridged noise times a density mask (`NebulaField`) |
-| `skybox::color`     | Maps a sample (density + hue) to a color through a `Palette`                 |
+| `skybox::color`     | Maps a sample (density + hue + drift) to a color through a `Palette`         |
 | `skybox::cubemap`   | Assembles the density field into a 6-face cubemap `Image`                    |
 | `utils`             | Small standalone helpers                                                     |
 | `dev_tools` (dev)   | Diagnostics + a single egui inspector window (live tuning)                   |
@@ -99,17 +99,19 @@ This is pure computation: to be covered by unit tests.
 | 2026-07-12 | Palette color driven by a separate hue field, not by density                      | Density-driven color is monochrome; a decoupled hue gives spatial color variety    |
 | 2026-07-12 | Hue field stretched by its own levels before the palette lookup                   | FBM clusters near 0.5; the stretch fills the palette instead of a narrow slice     |
 | 2026-07-12 | Global density mask sampled at the warped point (follows the warp)                | Keep the voids coherent with the warped filaments instead of floating over them    |
+| 2026-07-12 | Spatial palette hue drift rotating both colors in OkLCH                           | Vary the color scheme across the sky while keeping the local two-color relation    |
+| 2026-07-12 | Hue field and drift nested under `PaletteParams`; hue reuses `MaskParams`         | Group all color information in one inspector section; hue has the mask's shape     |
 
 ## Nebula generation
 
-The skybox is a CPU-baked cubemap: `cubemap` maps each face pixel to a direction, `field::sample_nebula` returns a density in `[0, 1]` and a hue for that direction, and `color::nebula_color` turns them into a pixel. The density is a short filter chain, each stage individually toggleable and tunable through `SkyboxParams`:
+The skybox is a CPU-baked cubemap: `cubemap` maps each face pixel to a direction, `field::sample_nebula` returns a density in `[0, 1]`, a hue and a drift value for that direction, and `color::nebula_color` turns them into a pixel. The density is a short filter chain, each stage individually toggleable and tunable through `SkyboxParams`:
 
 1. Domain warp (optional): the sampling direction is pushed by a two-level warp of a smooth FBM field (after Inigo Quilez), turning blobs into swirling filaments. A warp mask -- an FBM sampled at the original direction, shaped by optional levels and contrast -- can modulate the displacement amplitude per region, so the warp rages in some areas and stays calm in others.
 2. Ridge (optional): a ridged-multifractal `RidgedMulti<Perlin>` supplies the filament structure, remapped to `[0, 1]` and optionally gamma-shaped, then multiplied into the density.
 3. Density mask (optional): a smooth FBM, sampled at the warped point (so the voids swirl with the warp) and shaped by optional levels (smoothstep) and contrast, multiplied in to carve the large-scale black voids.
 4. Global gamma and levels (optional): a final shaping pass on the density.
 
-Color is decoupled from brightness. A separate hue field -- an FBM sampled at the warped point, stretched by its own levels onto `[0, 1]` (FBM clusters near 0.5, so without the stretch the palette only ever sees a narrow slice) -- selects a color: the palette (`color`) lerps between two colors by that hue, then scales by the density (so voids stay dark) and a global intensity. With the palette off, the raw density is written as grayscale. Every noise generator is built once per rebuild in `NebulaField::new`, and the scalar parameters are flattened in so the per-pixel `sample_nebula` never touches `SkyboxParams`.
+Color is decoupled from brightness. A separate hue field -- an FBM sampled at the warped point, stretched by its own levels onto `[0, 1]` (FBM clusters near 0.5, so without the stretch the palette only ever sees a narrow slice) -- selects a color: the palette (`color`) lerps between two colors by that hue, then scales by the density (so voids stay dark) and a global intensity. On top of that, an optional spatial drift rotates the whole palette across the sky: a second FBM mask (shaped by its own levels and contrast) is compared against a pivot set by `center` (0 = mid-mask, rotating both ways; -1/+1 = one end, rotating all one way), and the offset times `degrees` is applied as the same hue rotation to both palette colors in OkLCH (perceptual, lightness and chroma preserved), so the color scheme shifts region by region while the local two-color relationship stays intact. All color settings -- the two colors, intensity, the hue field (`hue`, a `MaskParams`) and the drift (`drift`, a `DriftParams`) -- live under `PaletteParams`. With the palette off, the raw density is written as grayscale. Every noise generator is built once per rebuild in `NebulaField::new`, and the scalar parameters are flattened in so the per-pixel `sample_nebula` never touches `SkyboxParams`.
 
 ## Debug tooling
 

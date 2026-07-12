@@ -225,3 +225,23 @@ Next
 - The palette lookup itself: a live-tuneable multi-stop gradient (or revisit the cosine palette) for the reference's teal/orange/magenta contrast.
 - Bring the density-mask voids back into the composition, and add the star field.
 - Still open: raise the bake resolution, or move generation into `skybox.wgsl` for full sharpness.
+
+## 2026-07-12 -- Spatial hue drift of the palette
+
+Done
+
+- Added a `DriftParams` stage (noise + levels + contrast + enabled, plus `degrees` and `center`): `sample_nebula` now also returns a `drift` value in `[0, 1]`, and `color::nebula_color` rotates both palette colors' hue by `(drift - pivot) * degrees` before the hue lerp, the pivot being `0.5 - center * 0.5`.
+- The hue rotation is done in OkLCH via Bevy's `Oklcha` (convert, add to `hue` with `rem_euclid(360.0)`, convert back), so lightness and chroma are preserved.
+- Regrouped the color settings: the hue field (now a plain `MaskParams`, `HueParams` removed) and the drift both live under `PaletteParams`, giving one "palette" section in the inspector. Retuned the defaults: orange/blue palette colors, a single-octave hue field with strong contrast, an 80-degree one-way drift (`center` -1), ridge gamma 1.5, density-mask seed 18.
+
+Learned
+
+- Rotating hue in a perceptual space (OkLCH) instead of HSV keeps the perceived brightness stable while the tint changes; HSV hue shifts make yellows pop and blues sink.
+- Applying the same rotation to both ramp endpoints preserves their local relationship (contrast, complementarity) while the global scheme drifts -- a cheap way to get large-scale color variety from a two-color palette.
+- The pivot/center formulation separates amplitude (`degrees`) from direction (`center`): the rotation range stays constant, only where zero sits on the mask moves.
+- The hue field ended up with exactly the mask's shape (noise + levels + contrast + enabled), so it reuses `MaskParams`; the earlier naming argument for a distinct `HueParams` was traded for less duplication, with the field name `hue` carrying the meaning.
+
+Next
+
+- A multi-stop gradient (or cosine palette) for the reference's teal/orange/magenta contrast.
+- Add the star field; move generation into `skybox.wgsl` (see the GPU direction).
