@@ -204,3 +204,24 @@ Next
 - Revamp the colors (next session's focus).
 - If the ridged structure keeps reading as fragmented, take the analytic connectivity leads: a hand-rolled Voronoi F2 - F1 for connected walls, and/or a curl-noise warp for coherent filaments.
 - Still open: raise the bake resolution, or move generation into `skybox.wgsl` for full sharpness.
+
+## 2026-07-12 -- Color from a separate hue field
+
+Done
+
+- Decoupled color from density (Aleksandr's workflow): `sample_nebula` now returns a `NebulaSample` (density + hue); the hue is a separate FBM sampled at the warped point, and `color::nebula_color` lerps two palette colors by that hue, scaled by density.
+- Added a `HueParams` stage (noise + levels + contrast + enabled), its levels stretching the hue's narrow FBM range onto the full palette; disabling it collapses the nebula to a single flat color.
+- Made the global density mask follow the warp (sampled at the warped point) so the voids swirl with the filaments instead of floating over them.
+
+Learned
+
+- FBM/Perlin output clusters around its mean (central-limit; more octaves = tighter), so a raw field spans roughly 0.4-0.6, not 0-1. Gamma cannot fix this: anchored at 0 and 1, it slides the cluster darker/brighter without stretching it (slope ~1 at the midpoint). A levels remap -- Substance's "Auto Levels" / "Histogram Scan" -- is the right tool, rescaling [lo, hi] onto [0, 1].
+- Vibrance has two independent axes. Saturation: a two-color RGB lerp muddies its midpoint toward gray. Hue variety: two endpoints of the same family stay monochrome. A cosine palette (Inigo Quilez, `a + b*cos(2pi(c*t+d))`) solves both -- each channel oscillates out of phase, sweeping saturated hues without the gray middle -- but its twelve abstract coefficients are hard to art-direct; a small hand-picked N-stop gradient is the intuitive middle ground.
+- Decoupling hue from density is the key structural move: density gates presence (voids stay dark), a separate field carries hue, so color varies spatially independent of brightness.
+- `MaskParams` did not fit the hue. A mask is multiplied into the density (identity 1 when off); a hue is a lookup input with no identity -- "off" picks a specific flat color, not "no effect". A distinct `HueParams` keeps the naming honest.
+
+Next
+
+- The palette lookup itself: a live-tuneable multi-stop gradient (or revisit the cosine palette) for the reference's teal/orange/magenta contrast.
+- Bring the density-mask voids back into the composition, and add the star field.
+- Still open: raise the bake resolution, or move generation into `skybox.wgsl` for full sharpness.
