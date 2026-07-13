@@ -16,7 +16,7 @@ use bevy::{
     camera::{Exposure, Hdr},
     core_pipeline::tonemapping::Tonemapping,
     light::Skybox,
-    post_process::bloom::Bloom,
+    post_process::{bloom::Bloom, effect_stack::Vignette},
     prelude::*,
 };
 use std::time::Duration;
@@ -78,12 +78,20 @@ fn spawn_orbit_camera(mut commands: Commands, cubemap: Res<SkyboxCubemap>) {
             target: None,
             transition: None,
         },
+        // The look: a cinematic HDR image, like an astrophotograph. Filmic
+        // tonemapping, strong bloom so the star burns beyond white, and a light
+        // vignette.
         Hdr,
         Exposure { ev100: 15.0 },
         Tonemapping::TonyMcMapface,
         Bloom {
-            high_pass_frequency: 0.4,
-            low_frequency_boost: 0.4,
+            intensity: 0.15,
+            low_frequency_boost: 0.6,
+            high_pass_frequency: 0.5,
+            ..default()
+        },
+        Vignette {
+            intensity: 0.35,
             ..default()
         },
         Skybox {
