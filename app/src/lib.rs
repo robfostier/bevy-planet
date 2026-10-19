@@ -1,3 +1,9 @@
+//! bevy-planet: a procedural planet observed at two linked scales (orbital and
+//! surface), driven by a single set of generation rules.
+
 pub mod camera;
+pub mod dev_tools;
+pub mod sky;
 pub mod star_system;
+pub mod system;
 mod utils;

@@ -1,5 +1,6 @@
 # Rust / Cargo build artifacts
 app/target
+pipeline.cache
 
 # Misc
 *.log

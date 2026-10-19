@@ -11,6 +11,9 @@ Explore a procedurally generated planet at two scales:
 - The whole planet floats in space, lit by a star.
 - The player can observe it and rotate it.
 - "Low-res" rendering: the silhouette and the large structures (continents, major relief) are readable, without the fine detail.
+- The backdrop is a procedurally generated sky, not a fixed image: a nebula of colourful gas with oil-paint volutes and dark voids, a fine starfield (thousands of faint stars, a few bright ones with faint sparkles), and dark Bok globules -- clumps of dust silhouetted against the gas, a thin rim of light on the side facing the brightest gas, some touched with strokes of gold, a few lit from the front as flat shapes of light.
+- The sky belongs to its star system, and the whole system follows from three inputs: a seed (each seed draws another nebula, other globules, other stars), an age and a metallicity. As the system ages, the gas slowly flows and reshapes, the globules drift with it while their torn edges evolve, a bright star erodes its nebula while a dim one leaves it thick, and the starfield thins out; metal-rich systems have warmer gas. Every change is continuous: nothing pops in or out.
+- The star is alive: a white-hot disc with boiling granulation and dark cracks that sharpen as you come closer, an irregular, shimmering limb and a soft corona. It burns beyond white in a cinematic image (bloom, light vignette). Its colour, brightness and size follow its mass and age, from a red dwarf to a blue giant or a swollen red giant.
 
 ### 2. First-person view
 

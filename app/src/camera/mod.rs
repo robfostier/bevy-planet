@@ -9,7 +9,12 @@ mod picking;
 mod sync;
 
 use crate::star_system::{StarSystemSet, SystemBodies};
-use bevy::prelude::*;
+use bevy::{
+    camera::{Exposure, Hdr},
+    core_pipeline::tonemapping::Tonemapping,
+    post_process::{bloom::Bloom, effect_stack::Vignette},
+    prelude::*,
+};
 use std::time::Duration;
 
 /// Radians of orbit per pixel of mouse motion while dragging.
@@ -23,9 +28,9 @@ const CAMERA_ANIMATION_DURATION: Duration = Duration::from_millis(1500);
 /// Orbit radius the camera resets to whenever it switches target.
 const DEFAULT_CAMERA_RADIUS: f32 = 4.0;
 /// Closest the camera is allowed to zoom in, added to the target's own radius.
-const MIN_CAMERA_DISTANCE: f32 = 2.0;
+const MIN_CAMERA_DISTANCE: f32 = 1.0;
 /// Furthest the camera is allowed to zoom out, added to the target's own radius.
-const MAX_CAMERA_DISTANCE: f32 = 16.0;
+const MAX_CAMERA_DISTANCE: f32 = 24.0;
 
 /// In-progress glide from a previous camera position/orientation to the
 /// current target's, started whenever `OrbitCamera::target` changes.
@@ -60,6 +65,7 @@ struct OrbitCamera {
 fn spawn_orbit_camera(mut commands: Commands) {
     commands.spawn((
         Camera3d::default(),
+        Name::new("Orbit Camera"),
         MeshPickingCamera,
         OrbitCamera {
             radius: DEFAULT_CAMERA_RADIUS,
@@ -67,6 +73,22 @@ fn spawn_orbit_camera(mut commands: Commands) {
             elevation: 0.0,
             target: None,
             transition: None,
+        },
+        // The look: a cinematic HDR image, like an astrophotograph. Filmic
+        // tonemapping, strong bloom so the star burns beyond white, and a light
+        // vignette.
+        Hdr,
+        Exposure { ev100: 15.0 },
+        Tonemapping::TonyMcMapface,
+        Bloom {
+            intensity: 0.15,
+            low_frequency_boost: 0.6,
+            high_pass_frequency: 0.5,
+            ..default()
+        },
+        Vignette {
+            intensity: 0.35,
+            ..default()
         },
     ));
 }
@@ -99,7 +121,7 @@ impl Plugin for CameraPlugin {
             .add_systems(
                 Update,
                 (
-                    bind_orbit_camera_target,
+                    bind_orbit_camera_target.run_if(resource_added::<SystemBodies>),
                     input::grab_cursor_on_mmb,
                     input::drag_orbit_camera,
                     input::zoom_orbit_camera,

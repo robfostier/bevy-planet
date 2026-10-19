@@ -39,6 +39,7 @@ pub(super) fn sync_orbit_camera_transform(
 
             transform.translation = Vec3::lerp(transition.start_position, next_position, t);
 
+            // look at stays well-defined only because elevation is clamped
             transform.look_at(
                 Vec3::lerp(transition.start_look_at, next_look_at, t),
                 Vec3::Y,
