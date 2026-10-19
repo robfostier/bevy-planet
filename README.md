@@ -40,6 +40,7 @@ bevy-planet/
 |-- app/               # the Rust crate (the game, written by the learner)
 |   |-- Cargo.toml     #   dependencies + build profile
 |   |-- src/           #   game source code
+|   |-- assets/shaders/ #  WGSL shaders, mirroring src/
 |-- docs/              # living documentation
 |   |-- technical.md   #   architecture, modules, algorithms
 |   |-- functional.md  #   the gameplay experience

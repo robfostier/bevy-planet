@@ -245,3 +245,68 @@ Next
 
 - A multi-stop gradient (or cosine palette) for the reference's teal/orange/magenta contrast.
 - Add the star field; move generation into `skybox.wgsl` (see the GPU direction).
+
+## 2026-10-18 -- GPU nebula, sky sphere, starfield and a living star
+
+Done
+
+- Ported the nebula bake to a GPU compute shader, reproducing the `noise` crate exactly (its permutation tables are generated on the CPU and uploaded): instant rebakes, pixel-identical to the CPU version.
+- Replaced Bevy's `Skybox` with an opaque far-plane sphere and a custom material that composites the nebula and a per-pixel procedural starfield (four layers, blackbody colours, footprint anti-aliasing, faint sparkles on the brightest stars), calibrated on full-sky captures against reference photos.
+- Gave the star a custom surface material and an additive corona, driven by its physics (mass, age, metallicity), and the camera a cinematic HDR look; chose the art direction (a white-hot star with a boiling limb).
+- Added scripted image capture to `dev_tools` for look development (offscreen 4K renders, full-sky panoramas).
+- Moved parent modules to the `mod.rs` layout and capped files at 200 lines.
+
+Learned
+
+- Stars smaller than a cubemap texel cannot be baked: point sampling gives random sizes and brightnesses. Computing them per screen pixel, with a width never below the pixel footprint and energy conserved, keeps them sharp and stable at any resolution.
+- A 3D grid of cells over the direction sphere with one star per cell is an exhaustive 8-cell lookup only if each star stays inside its own cell.
+- Look development goes faster from renders than from specifications: the art direction was chosen by comparing side-by-side captures.
+
+Next
+
+- Bok globules in the nebula: dust silhouettes backlit by the gas.
+
+## 2026-10-19 -- Bok globules, architecture and performance
+
+Done
+
+- Built the Bok globules as a node graph of single-purpose masks (scatter, light side, shape, placement, density, rim), each validated white-on-black on full-sky panoramas before compositing.
+- Baked 64 generated shapes once into an atlas with exact signed distance fields (jump flood confined to each tile), so rims are a fixed number of pixels wide on every globule and the sky no longer evaluates shapes per pixel.
+- Added a rim falloff, gold gilding strokes on a share of the rims (after Hades' painted accents), front-lit globules as flats of light, and a seed.
+- Reorganised the tree by domain, mirrored between Rust and shaders (globules now live in the nebula), split shared shader modules into `common/`, gave the globule uniforms named fields, passed the atlas sizes as shader defs, and added unit tests for the star's physics.
+- Profiled the sky per pass and cut its main pass at 4K from 11.4 ms to 7.2 ms with no visible change.
+
+Learned
+
+- A rim of "N pixels" needs a true distance to the silhouette; a single-pass shader only has a noisy field, which makes rims huge on large globules. A distance field baked once (jump flood) gives an exact signed distance, and sphere tracing it towards the light finds a pixel's distance to the lit edge.
+- With vsync on, `frame_time` snaps to 16.7 or 33.3 ms; real costs need GPU timestamps per pass (`RenderDiagnosticsPlugin`) with vsync off.
+- The cheapest optimisations reject early without changing the result: compute per-tier constants once, draw a cell's occupancy before the rest of its hash, skip neighbour cells a star's glow cannot reach, and run the costly overlap check only under a silhouette.
+- naga_oil substitutes imported identifiers everywhere, field names included: an imported function cannot share its name with a struct field.
+
+Next
+
+- The starfield is now the largest cost (about 3 ms at 4K): baking only the faint dust layer is the next lead.
+- Back to the core: the procedural planet.
+
+## 2026-10-19 -- A living system, and the sky's costs
+
+Done
+
+- Drove the whole system from one set of inputs (`SystemParams`: seed, age, metallicity, all 0..1), each part deriving its seed by its path; locked every base style in code, so the player only ever moves simple 0..1 inputs and every system is a derivation of the art-directed look.
+- Made the sky evolve with the system: the gas is composed every frame from baked noise fields (evaporation, filling, warmth cost no bake), the age slides the warp's noise so the gas flows, the starfield thins out with age, and every threshold fades instead of popping.
+- Redid the globules' evolution twice: a per-pixel ride through the gas tore and twisted them; they now ride the gas by their centre on the warp's broad octave only, and their shapes evolve by sliding their own tearing noise.
+- Cut the sky's main pass at 4K from 7.9 ms to 4.9 ms with the image identical to the pixel (a per-tier mask of where globules may show, tighter star pruning, a higher glow cut), then to 3.7 ms by removing the star dust layer, judged invisible in game. Kept a dragged age slider near 8 ms of bakes a frame (preview fields, atlas slices) and the sky's video memory near 120 MB.
+
+Learned
+
+- Moving an object with a displacement field evaluated per pixel deforms it with the field's gradient; to move it rigidly, displace it by the field at one point (its centre), and keep its own evolution in its own parameters.
+- A domain warp's fine octaves oscillate as its noise slides: following them makes a body tremble back and forth, the first octave alone drifts.
+- Measure before and after every optimisation, with the patches checked: several "gains" this session were measurement errors (a patch script that silently stopped applying, frame-time estimates instead of GPU spans). Sharing Perlin's hash lookups and a cube-face star grid both measured slower and were reverted.
+- Spread the full fields bake over six frames, a face each, the preview shown until the last: the 45 ms frame when the age settled is gone (frames stay under 11 ms). A 250 ms frame seen while measuring it was the capture tool's 4K screenshot, not the bake.
+- Splitting the hero layer on the GPU, the few sparkling heroes on their own sparse grid, measured 0.4 ms slower: each layer costs a fixed setup per pixel (about 0.3 ms at 4K), more than the sparkle search it saved. Reverted.
+- Baking the globules with the gas, at its 1024 per face, was tried: about 1 ms a frame saved, but a texel is 3 to 4 pixels at 4K, so silhouettes softened, thin rims became about one texel and depended on the screen's resolution, and it needed a second 50 MB map. Kept per pixel.
+- A bake costs per change, a pass per frame: masks and caches that turn per-frame work into per-change work are where a static sky saves the most.
+
+Next
+
+- Back to the core: the procedural planet.
