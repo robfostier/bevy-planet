@@ -5,16 +5,16 @@
 //
 // As the system ages, the warp's noise slides a little (`shape.z`): the gas
 // flows and reshapes. The sky composes the gas from the fields every frame
-// (`look.wgsl`), so its other changes cost no bake.
+// (`look.wesl`), so its other changes cost no bake.
 // - fields (on every bake): r the ridge (0..1, before its gamma), g the voids
 //   mask's noise, b the hue field's noise, a the drift's noise (all 0..1);
 // - carry (on every bake, the globules'): xyz where the style's gas at a
 //   direction now shows, minus the direction;
 // - density (only on a new seed, the globules'): r the style's density.
 
-#import "shaders/sky/nebula/gas/noise.wgsl"::{NoiseField, fbm, ridged}
-#import "shaders/sky/nebula/gas/curves.wgsl"::{contrast, levels, powf, smooth_unit}
-#import "shaders/common/cube.wgsl"::texel_direction
+import package::shaders::sky::nebula::gas::noise::{NoiseField, fbm, ridged};
+import package::shaders::sky::nebula::gas::curves::{contrast, levels, powf, smooth_unit};
+import package::shaders::common::cube::texel_direction;
 
 struct NebulaParams {
     warp: NoiseField,

@@ -1,4 +1,4 @@
-//! The globule atlas (`assets/shaders/sky/nebula/globules/atlas.wgsl`): TILES
+//! The globule atlas (`assets/shaders/sky/nebula/globules/atlas.wesl`): TILES
 //! x TILES globule shapes, each with its exact signed distance field, baked on
 //! the GPU at startup and as the system ages (their edges deform: a slice of
 //! its rows per frame, in turn). The sky reads a globule's tile instead of
@@ -31,7 +31,7 @@ use pipeline::{init_atlas_pipeline, run_atlas_bake};
 use super::GlobuleStyle;
 use crate::system::SystemParams;
 
-const SHADER_ASSET_PATH: &str = "shaders/sky/nebula/globules/atlas.wgsl";
+const SHADER_ASSET_PATH: &str = "shaders/sky/nebula/globules/atlas.wesl";
 /// Texels on a side of one tile, and tiles on a side of the atlas (passed to
 /// the shaders as shader defs, see `shader_defs`).
 const TILE: u32 = 256;
@@ -47,8 +47,8 @@ const SLICE_ROWS: u32 = SIZE / SLICES;
 /// they are clamped to it, still a bound the sky's rim tracing can step by.
 const REACH: u32 = 32;
 
-/// The atlas' sizes, for every shader that reads or writes it (`atlas.wgsl`,
-/// `tile.wgsl`).
+/// The atlas' sizes, for every shader that reads or writes it (`atlas.wesl`,
+/// `tile.wesl`).
 pub(crate) fn shader_defs() -> Vec<ShaderDefVal> {
     vec![
         ShaderDefVal::UInt("GLOBULE_TILE".into(), TILE),
@@ -70,10 +70,12 @@ impl FromWorld for GlobuleAtlas {
 /// The generation of the atlas' last bake, written by the render world: the
 /// next slice waits for it (one asked for before is never lost).
 #[derive(Resource, Clone, Default, ExtractResource)]
+#[extract_app(RenderApp)]
 struct AtlasBakedGeneration(Arc<AtomicU64>);
 
 /// One bake request, extracted to the render world.
 #[derive(Resource, Clone, ExtractResource)]
+#[extract_app(RenderApp)]
 struct AtlasBakeJob {
     buoyancy: f32,
     slide: f32,

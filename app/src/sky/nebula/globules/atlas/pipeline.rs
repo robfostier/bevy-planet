@@ -22,7 +22,7 @@ use super::{
 };
 
 const WORKGROUP_SIZE: u32 = 8;
-/// The stages, in dispatch order (the entry points of `atlas.wgsl`).
+/// The stages, in dispatch order (the entry points of `atlas.wesl`).
 const STAGES: [&str; 3] = ["shape", "flood", "resolve"];
 
 #[derive(Resource)]

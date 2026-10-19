@@ -1,5 +1,5 @@
 // The globules ride the gas: they live in the style's sky (the gas at
-// mid-life), and the carry (`gas/bake.wgsl`: xyz where the style's gas now
+// mid-life), and the carry (`gas/bake.wesl`: xyz where the style's gas now
 // shows, minus the direction) moves each one, as one piece, with the gas at
 // its centre (cubemaps are left-handed).
 

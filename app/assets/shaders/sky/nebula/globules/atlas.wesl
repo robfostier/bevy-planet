@@ -1,5 +1,5 @@
 // The globule atlas bake: TILES x TILES tiles of TILE x TILE texels, one
-// globule shape per tile (`shape.wgsl`, in its frame: head radii,
+// globule shape per tile (`shape.wesl`, in its frame: head radii,
 // [-EXTENT, EXTENT] on both axes). Each texel ends with the exact signed
 // distance to its tile's silhouette, in head radii (r; < 0 inside), and the
 // shape's field (g), so the sky can draw rims a fixed number of pixels wide
@@ -12,13 +12,13 @@
 //            the nearest inside (r) and outside (g) seed of its own tile
 //   resolve  signed distance from the two nearest seeds
 
-#import "shaders/sky/nebula/globules/shape.wgsl"::{EXTENT, globule_field}
+import package::shaders::sky::nebula::globules::shape::{EXTENT, globule_field};
 
 // Its sizes, from the Rust side (`atlas/mod.rs`), as shader defs.
-const TILE: i32 = i32(#{GLOBULE_TILE});
-const TILES: i32 = i32(#{GLOBULE_TILES});
+const TILE: i32 = i32(constants::GLOBULE_TILE);
+const TILES: i32 = i32(constants::GLOBULE_TILES);
 // How far from an edge the distances are exact, in texels; clamped beyond.
-const REACH: f32 = f32(#{GLOBULE_REACH});
+const REACH: f32 = f32(constants::GLOBULE_REACH);
 const NONE: vec2<f32> = vec2(-1.0);
 const NONE_PACKED: u32 = 0xffffffffu;
 

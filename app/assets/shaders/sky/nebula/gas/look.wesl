@@ -1,10 +1,10 @@
-// The gas, composed every frame from the baked fields (`bake.wgsl`) with its
+// The gas, composed every frame from the baked fields (`bake.wesl`) with its
 // look (`NebulaLook`, mirrors `GpuNebulaLook`): the style's shaping and
 // palette, evolved by the nebula's properties. So the system's evolution costs
 // no bake: only these few sums per pixel.
 
-#import "shaders/common/color.wgsl"::{from_oklab, rotate_hue}
-#import "shaders/sky/nebula/gas/curves.wgsl"::{contrast, levels, powf, smooth_unit}
+import package::shaders::common::color::{from_oklab, rotate_hue};
+import package::shaders::sky::nebula::gas::curves::{contrast, levels, powf, smooth_unit};
 
 struct NebulaLook {
     // The palette's two colours, in Oklab (w unused).

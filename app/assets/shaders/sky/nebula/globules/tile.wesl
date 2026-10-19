@@ -1,12 +1,12 @@
-// Reading a globule's tile of the atlas (`atlas.wgsl`): its shape's exact
+// Reading a globule's tile of the atlas (`atlas.wesl`): its shape's exact
 // signed distance, in the globule's frame. The atlas' sizes come from the
 // Rust side (`atlas/mod.rs`), as shader defs.
 
-#import "shaders/sky/nebula/globules/shape.wgsl"::EXTENT
+import package::shaders::sky::nebula::globules::shape::EXTENT;
 
 // The atlas: tiles of TILE texels, TILES on a side.
-const TILE: f32 = f32(#{GLOBULE_TILE});
-const TILES: f32 = f32(#{GLOBULE_TILES});
+const TILE: f32 = f32(constants::GLOBULE_TILE);
+const TILES: f32 = f32(constants::GLOBULE_TILES);
 
 // A globule's signed distance at `q` (its frame, head radii; < 0 inside),
 // from its atlas tile (xy: tile, z: 1 or -1 to mirror it).

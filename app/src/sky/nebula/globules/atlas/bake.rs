@@ -14,7 +14,7 @@ use bevy::{
 
 use super::{AtlasBakeJob, REACH, SIZE, SLICE_ROWS, pipeline::AtlasPipeline};
 
-/// Mirrors `Bake` in `atlas.wgsl`.
+/// Mirrors `Bake` in `atlas.wesl`.
 #[derive(Clone, Copy, Default, ShaderType)]
 pub(super) struct GpuBake {
     buoyancy: f32,

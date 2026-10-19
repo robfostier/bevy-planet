@@ -10,7 +10,7 @@
 //   notches and torn-off fragments, while the core stays solid.
 // - Round bumps at three scales plump up the lobes' tips (`buoyancy`).
 
-#import "shaders/common/gradient_noise.wgsl"::gnoise
+import package::shaders::common::gradient_noise::gnoise;
 
 // How far a globule reaches from its centre, in head radii (its tail included).
 const EXTENT: f32 = 3.5;

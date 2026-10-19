@@ -5,13 +5,13 @@
 // The vertex shader gently displaces the sphere with slow, low-frequency noise,
 // so the silhouette is never a perfect circle.
 
-#import bevy_pbr::{
+import bevy_pbr::render::{
     forward_io::{Vertex, VertexOutput},
     mesh_view_bindings::{view, globals},
     mesh_functions,
     view_transformations::position_world_to_clip,
-}
-#import "shaders/common/gradient_noise.wgsl"::{fbm, fbm_lod}
+};
+import package::shaders::common::gradient_noise::{fbm, fbm_lod};
 
 struct Star {
     // rgb color, a intensity (display-linear multiplier).
@@ -34,7 +34,7 @@ struct Star {
     texture: vec4<f32>,
 }
 
-@group(#{MATERIAL_BIND_GROUP}) @binding(0) var<uniform> star: Star;
+@group(constants::MATERIAL_BIND_GROUP) @binding(0) var<uniform> star: Star;
 
 // A point of the unit sphere, pushed in or out by the slow silhouette noise.
 fn displaced(dir: vec3<f32>) -> vec3<f32> {
@@ -63,12 +63,8 @@ fn vertex(vertex: Vertex) -> VertexOutput {
     out.world_position = mesh_functions::mesh_position_local_to_world(world_from_local, vec4(p0, 1.0));
     out.position = position_world_to_clip(out.world_position.xyz);
     out.world_normal = mesh_functions::mesh_normal_local_to_world(normal, vertex.instance_index);
-#ifdef VERTEX_UVS_A
-    out.uv = vertex.uv;
-#endif
-#ifdef VERTEX_OUTPUT_INSTANCE_INDEX
-    out.instance_index = vertex.instance_index;
-#endif
+    @if(VERTEX_UVS_A) out.uv = vertex.uv;
+    @if(VERTEX_OUTPUT_INSTANCE_INDEX) out.instance_index = vertex.instance_index;
     return out;
 }
 

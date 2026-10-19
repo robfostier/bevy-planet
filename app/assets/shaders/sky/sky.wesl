@@ -1,17 +1,17 @@
 // The sky: the nebula's gas, composed every frame from its baked fields
-// (`nebula/gas/look.wgsl`), the Bok globules backlit by it
-// (`nebula/globules/globules.wgsl`) and a per-pixel procedural starfield
-// (`starfield.wgsl`). Drawn on a unit sphere re-centred on the camera in the
+// (`nebula/gas/look.wesl`), the Bok globules backlit by it
+// (`nebula/globules/globules.wesl`) and a per-pixel procedural starfield
+// (`starfield.wesl`). Drawn on a unit sphere re-centred on the camera in the
 // vertex shader and pushed to the far plane (reverse-Z depth 0), so it sits
 // behind every object, whatever the drawing order.
 
-#import bevy_pbr::mesh_view_bindings::view
-#import "shaders/common/color.wgsl"::LUMA
-#import "shaders/sky/nebula/gas/look.wgsl"::{NebulaLook, cube_texel, gas_color}
-#import "shaders/sky/nebula/globules/carry.wgsl"::style_point
-#import "shaders/sky/starfield.wgsl"::{StarLayer, StarLook, star_layer}
-#import "shaders/sky/nebula/globules/globules.wgsl"::globules
-#import "shaders/sky/nebula/globules/look.wgsl"::GlobuleLook
+import bevy_pbr::render::mesh_view_bindings::view;
+import package::shaders::common::color::LUMA;
+import package::shaders::sky::nebula::gas::look::{NebulaLook, cube_texel, gas_color};
+import package::shaders::sky::nebula::globules::carry::style_point;
+import package::shaders::sky::starfield::{StarLayer, StarLook, star_layer};
+import package::shaders::sky::nebula::globules::globules::globules;
+import package::shaders::sky::nebula::globules::look::GlobuleLook;
 
 // Mirrors `GpuSky`.
 struct Sky {
@@ -28,14 +28,14 @@ struct Sky {
     globule_look: GlobuleLook,
 }
 
-@group(#{MATERIAL_BIND_GROUP}) @binding(0) var<uniform> sky: Sky;
-@group(#{MATERIAL_BIND_GROUP}) @binding(1) var nebula: texture_cube<f32>;
-@group(#{MATERIAL_BIND_GROUP}) @binding(2) var nebula_sampler: sampler;
-@group(#{MATERIAL_BIND_GROUP}) @binding(3) var atlas: texture_2d<f32>;
-@group(#{MATERIAL_BIND_GROUP}) @binding(4) var atlas_sampler: sampler;
-@group(#{MATERIAL_BIND_GROUP}) @binding(5) var carry: texture_cube<f32>;
-@group(#{MATERIAL_BIND_GROUP}) @binding(6) var density: texture_cube<f32>;
-@group(#{MATERIAL_BIND_GROUP}) @binding(7) var globule_mask: texture_cube<f32>;
+@group(constants::MATERIAL_BIND_GROUP) @binding(0) var<uniform> sky: Sky;
+@group(constants::MATERIAL_BIND_GROUP) @binding(1) var nebula: texture_cube<f32>;
+@group(constants::MATERIAL_BIND_GROUP) @binding(2) var nebula_sampler: sampler;
+@group(constants::MATERIAL_BIND_GROUP) @binding(3) var atlas: texture_2d<f32>;
+@group(constants::MATERIAL_BIND_GROUP) @binding(4) var atlas_sampler: sampler;
+@group(constants::MATERIAL_BIND_GROUP) @binding(5) var carry: texture_cube<f32>;
+@group(constants::MATERIAL_BIND_GROUP) @binding(6) var density: texture_cube<f32>;
+@group(constants::MATERIAL_BIND_GROUP) @binding(7) var globule_mask: texture_cube<f32>;
 
 struct Vertex {
     @location(0) position: vec3<f32>,

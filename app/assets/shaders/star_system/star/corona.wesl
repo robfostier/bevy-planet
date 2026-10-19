@@ -2,10 +2,10 @@
 // additively around the silhouette. A soft glow in the chromosphere's color,
 // bright at the limb, that melts into the sky.
 
-#import bevy_pbr::{
+import bevy_pbr::render::{
     mesh_view_bindings::view,
     mesh_functions,
-}
+};
 
 struct Corona {
     // The chromosphere's color (rgb) and intensity (a): the glow continues it.
@@ -14,7 +14,7 @@ struct Corona {
     shape: vec4<f32>,
 }
 
-@group(#{MATERIAL_BIND_GROUP}) @binding(0) var<uniform> corona: Corona;
+@group(constants::MATERIAL_BIND_GROUP) @binding(0) var<uniform> corona: Corona;
 
 struct Vertex {
     @builtin(instance_index) instance_index: u32,

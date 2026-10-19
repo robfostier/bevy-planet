@@ -6,7 +6,7 @@
 // of a tier never overlap), and a smaller one is dropped where a larger one
 // already stands.
 
-#import "shaders/sky/nebula/globules/shape.wgsl"::EXTENT
+import package::shaders::sky::nebula::globules::shape::EXTENT;
 
 const TIERS: i32 = 3;
 // A cell's width, in a tier's globule reaches (above 2: a globule never

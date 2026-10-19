@@ -1,6 +1,6 @@
 // Blackbody colours, for stars of a temperature.
 
-#import "shaders/common/color.wgsl"::LUMA
+import package::shaders::common::color::LUMA;
 
 fn unit_luma(c: vec3<f32>) -> vec3<f32> {
     return c / max(dot(c, LUMA), 1e-4);

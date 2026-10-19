@@ -1,8 +1,8 @@
 // The gilding: short strokes of saturated gold laid on a globule's lit edge
 // (after the painted accents of Supergiant's Hades).
 
-#import "shaders/common/gradient_noise.wgsl"::gnoise
-#import "shaders/common/color.wgsl"::LUMA
+import package::shaders::common::gradient_noise::gnoise;
+import package::shaders::common::color::LUMA;
 
 // Strokes as thick as the rim on the edge, cut into dashes by a noise of
 // DASHES per head radius (fixed on the globule), from a pale to a deep gold

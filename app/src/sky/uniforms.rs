@@ -1,4 +1,4 @@
-//! The sky's uniforms, mirroring `Sky` in `sky.wgsl`: the starfield's and the
+//! The sky's uniforms, mirroring `Sky` in `sky.wesl`: the starfield's and the
 //! globules' own uniforms (each from its module), and the nebula's brightness.
 
 use bevy::render::render_resource::ShaderType;

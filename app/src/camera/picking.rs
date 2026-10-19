@@ -9,7 +9,7 @@ use crate::star_system::CelestialBody;
 use bevy::prelude::*;
 use std::time::Duration;
 
-/// Observer on `Pointer<Click>`: detects a double-click on a celestial body
+/// Observer on `PointerClick`: detects a double-click on a celestial body
 /// and switches every orbit camera's target to it.
 ///
 /// Double-click detection is a small debounce state machine kept in a
@@ -19,7 +19,7 @@ use std::time::Duration;
 /// with a button other than the primary one resets the state instead of
 /// counting towards a double-click.
 pub(super) fn pick_orbit_camera_target(
-    mut click: On<Pointer<Click>>,
+    mut click: On<PointerClick>,
     bodies: Query<(&CelestialBody, &Transform)>,
     mut cameras: Query<(&mut OrbitCamera, &Transform)>,
     mut state: Local<Option<(Entity, Duration)>>,

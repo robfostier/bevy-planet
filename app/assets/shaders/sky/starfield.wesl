@@ -6,7 +6,7 @@
 // width never drops below the pixel footprint, so sub-pixel stars stay stable
 // instead of popping or aliasing.
 
-#import "shaders/common/blackbody.wgsl"::blackbody
+import package::shaders::common::blackbody::blackbody;
 
 // One star population (mirrors `GpuStarLayer`).
 struct StarLayer {

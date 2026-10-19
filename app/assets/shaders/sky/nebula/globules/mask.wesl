@@ -5,11 +5,11 @@
 // it once per pixel and searches only the tiers it shows. Baked for each
 // system seed, with the most gas a cloud keeps (`globules/mask`).
 
-#import "shaders/common/cube.wgsl"::texel_direction
-#import "shaders/sky/nebula/gas/look.wgsl"::cube_texel
-#import "shaders/sky/nebula/globules/carry.wgsl"::CARRY_MARGIN
-#import "shaders/sky/nebula/globules/scatter.wgsl"::{Scatter, TIERS, crowded, globule_at, tier}
-#import "shaders/sky/nebula/globules/shape.wgsl"::EXTENT
+import package::shaders::common::cube::texel_direction;
+import package::shaders::sky::nebula::gas::look::cube_texel;
+import package::shaders::sky::nebula::globules::carry::CARRY_MARGIN;
+import package::shaders::sky::nebula::globules::scatter::{Scatter, TIERS, crowded, globule_at, tier};
+import package::shaders::sky::nebula::globules::shape::EXTENT;
 
 // Mirrors `GpuMaskBake`: the scatter (see `Scatter`), the style's density
 // below which no globule shows (`GlobuleLook`), and the mask's texels on a side
@@ -35,7 +35,7 @@ struct MaskBake {
 const SLACK_TEXELS: f32 = 2.0;
 
 // Whether the gas around `point` (within `slack`, radians) may be dense enough
-// to show a globule (`globules.wgsl`: none at or below `gas_faint`).
+// to show a globule (`globules.wesl`: none at or below `gas_faint`).
 fn dense_enough(point: vec3<f32>, slack: f32) -> bool {
     let up = cross(vec3(0.0, 1.0, 0.0), point);
     let east = normalize(select(up, vec3(1.0, 0.0, 0.0), dot(up, up) < 1e-6));
