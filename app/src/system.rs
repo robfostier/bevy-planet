@@ -18,12 +18,12 @@ pub(crate) struct SystemParams {
     pub(crate) seed: u32,
     /// Age, through its star's life: 0 at the star's birth, 1 at its end (a
     /// red giant); the Sun's: 0.35. Everything that ages follows it.
-    #[inspector(min = 0.0, max = 1.0, speed = 0.002)]
+    #[inspector(min = 0.0, max = 1.0, speed = 0.002_f32)]
     pub(crate) age: f32,
     /// Metallicity, from metal-poor (0) to metal-rich (1); the Sun's: 2/3.
     /// A metal-poor system has hotter, brighter stars and a bluer nebula; a
     /// metal-rich one, cooler stars and a redder nebula.
-    #[inspector(min = 0.0, max = 1.0, speed = 0.002)]
+    #[inspector(min = 0.0, max = 1.0, speed = 0.002_f32)]
     pub(crate) metallicity: f32,
 }
 

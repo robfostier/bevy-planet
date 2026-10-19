@@ -29,7 +29,7 @@ const HEAVIEST: f32 = 20.0;
 pub(crate) struct StarParams {
     /// Mass, from the lightest star (0, a red dwarf) to the heaviest (1, a
     /// blue giant), on a log scale; the Sun's: 0.43. The player's choice.
-    #[inspector(min = 0.0, max = 1.0, speed = 0.002)]
+    #[inspector(min = 0.0, max = 1.0, speed = 0.002_f32)]
     pub(crate) mass: f32,
 }
 
