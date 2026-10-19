@@ -2,7 +2,10 @@
 
 use bevy::prelude::*;
 
-use super::{NebulaBakeJob, NebulaCubemaps, NebulaStyle, RESOLUTION, uniforms::build_gpu_params};
+use super::{
+    DENSITY_RESOLUTION, NebulaBakeJob, NebulaCubemaps, NebulaStyle, RESOLUTION,
+    uniforms::build_gpu_params,
+};
 use crate::system::SystemParams;
 
 /// The gas's path in the system, from which its seed derives.
@@ -22,13 +25,13 @@ pub(super) fn queue_bake(
     let (params, tables) = build_gpu_params(
         &NebulaStyle::default(),
         system.derive(SEED_PATH),
-        RESOLUTION,
+        [RESOLUTION, DENSITY_RESOLUTION],
     );
     *generation += 1;
     commands.insert_resource(NebulaBakeJob {
         params,
         tables,
         generation: *generation,
-        image: cubemaps.fields.clone(),
+        images: [cubemaps.fields.clone(), cubemaps.density.clone()],
     });
 }
