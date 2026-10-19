@@ -1,3 +1,5 @@
+mod capture;
+
 use bevy::{
     camera::Hdr,
     diagnostic::{
@@ -61,7 +63,8 @@ fn dev_tools_ui(world: &mut World) {
 }
 
 /// Dev-only tooling, grouped so it can be gated out of release builds in one
-/// place: the diagnostic loggers, the inspector's overlay camera, and disabling
+/// place: the diagnostic loggers, the inspector's overlay camera, image capture
+/// for look development (`capture`), and disabling
 /// bevy_egui's automatic primary-context creation (which would otherwise attach a
 /// second context to the 3D camera and clash with ours).
 pub struct DevToolsPlugin;
@@ -88,6 +91,8 @@ impl Plugin for DevToolsPlugin {
             ))
             .add_systems(Startup, spawn_dev_tools_camera)
             .add_systems(EguiPrimaryContextPass, dev_tools_ui);
+
+        capture::build(app);
 
         // Disable auto-creation of the primary Egui context, since we spawn our own inspector camera.
         app.world_mut()
