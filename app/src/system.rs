@@ -50,6 +50,12 @@ impl Default for SystemParams {
 }
 
 impl SystemParams {
+    /// The metallicity in dex of [Fe/H] (0 = the Sun's), as the star's
+    /// physics needs it.
+    pub(crate) fn metallicity_dex(&self) -> f32 {
+        METAL_POOR_DEX + self.metallicity * (METAL_RICH_DEX - METAL_POOR_DEX)
+    }
+
     /// The seed of the part at `path` (e.g. `"sky/nebula/gas"`): the path's
     /// FNV-1a hash mixed with the system seed by SplitMix64.
     pub(crate) fn derive(&self, path: &str) -> u32 {

@@ -21,6 +21,7 @@ use crate::skybox::{
     ContrastParams, DriftParams, GammaParams, LevelsParams, MaskParams, NoiseParams, PaletteParams,
     RidgeParams, SkyboxParams, WarpParams,
 };
+use crate::star_system::star::{StarParams, StarProperties};
 use crate::system::SystemParams;
 
 /// Spawns a dedicated 2D overlay camera for the egui inspector, so egui stops
@@ -58,6 +59,17 @@ fn dev_tools_ui(world: &mut World) {
         ScrollArea::both().show(ui, |ui| {
             CollapsingHeader::new("System").show(ui, |ui| {
                 bevy_inspector::ui_for_resource::<SystemParams>(world, ui);
+            });
+            CollapsingHeader::new("Star").show(ui, |ui| {
+                // Two inspectors in one section: each needs its own id scope,
+                // or their grids clash.
+                ui.push_id("star_params", |ui| {
+                    bevy_inspector::ui_for_resource::<StarParams>(world, ui);
+                });
+                ui.label("Derived:");
+                ui.push_id("star_properties", |ui| {
+                    bevy_inspector::ui_for_resource::<StarProperties>(world, ui);
+                });
             });
             CollapsingHeader::new("Skybox").show(ui, |ui| {
                 bevy_inspector::ui_for_resource::<SkyboxParams>(world, ui);

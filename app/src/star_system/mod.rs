@@ -1,4 +1,7 @@
-use bevy::prelude::*;
+pub(crate) mod star;
+
+use bevy::{light::NotShadowCaster, prelude::*};
+use star::{BASE_LIGHT_INTENSITY, BASE_RADIUS, CoronaMaterial, StarMaterial, StarStyle};
 
 /// Handles to the key bodies of the system, published once `spawn_system` has run
 /// so other plugins can reference them by entity.
@@ -68,16 +71,22 @@ fn spawn_system(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    mut star_materials: ResMut<Assets<StarMaterial>>,
+    mut corona_materials: ResMut<Assets<CoronaMaterial>>,
 ) {
     // star
-    let star_radius = 2.0;
+    // Spawned as the base star; `star` then derives it from `StarParams`.
+    let star_radius = BASE_RADIUS;
+    let star_style = StarStyle::default();
+    let (surface, corona) = star_style.materials(star_radius);
     let star_entity = commands
         .spawn((
-            Mesh3d(meshes.add(Sphere::new(star_radius))),
-            MeshMaterial3d(materials.add(StandardMaterial {
-                emissive: (Srgba::rgb(1.0, 0.95, 0.88) * 10.0).into(),
-                ..default()
-            })),
+            // Finely tessellated (~17k vertices): the silhouette is seen up close
+            // and displaced, so its facets must stay below a pixel.
+            Mesh3d(meshes.add(Sphere::new(star_radius).mesh().ico(40).unwrap())),
+            MeshMaterial3d(star_materials.add(surface)),
+            // The star's light sits at its centre: the sphere must not shadow it.
+            NotShadowCaster,
             CelestialBody {
                 radius: star_radius,
             },
@@ -87,19 +96,22 @@ fn spawn_system(
                 axis: Dir3::Y,
             },
         ))
+        .with_children(|star| {
+            star.spawn(star::corona(
+                meshes.add(Rectangle::new(2.0, 2.0)),
+                corona_materials.add(corona),
+            ));
+            star.spawn(PointLight {
+                color: star_style.light_color(),
+                intensity: BASE_LIGHT_INTENSITY,
+                range: 50.0,
+                shadow_maps_enabled: true,
+                ..default()
+            });
+        })
         .id();
 
     commands.insert_resource(SystemBodies { star: star_entity });
-
-    commands.spawn((
-        ChildOf(star_entity),
-        PointLight {
-            intensity: 9e7,
-            range: 50.0,
-            shadow_maps_enabled: true,
-            ..default()
-        },
-    ));
 
     // planet
     let planet_radius = 0.25;
@@ -137,6 +149,7 @@ pub struct StarSystemPlugin;
 
 impl Plugin for StarSystemPlugin {
     fn build(&self, app: &mut App) {
+        star::build(app);
         app.add_systems(Startup, spawn_system).add_systems(
             Update,
             (update_orbital, update_spin).chain().in_set(StarSystemSet),
