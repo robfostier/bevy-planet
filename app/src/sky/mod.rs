@@ -1,12 +1,15 @@
 //! The sky, exposed as `SkyPlugin`: a sphere (`assets/shaders/sky/sky.wgsl`)
 //! that composites its parts, each a module mirroring its shaders:
 //! - `nebula`: the gas (a cubemap baked on the GPU) and the Bok globules
-//!   backlit by it.
+//!   backlit by it;
+//! - `starfield`: a per-pixel procedural starfield (sharp at any resolution, no
+//!   texture memory).
 //!
 //! Drawn as an opaque unit sphere re-centred on the camera and pushed to the far
 //! plane, so it always sits behind everything.
 
 pub(crate) mod nebula;
+pub(crate) mod starfield;
 mod uniforms;
 
 use bevy::{
@@ -25,6 +28,7 @@ use nebula::{
     globules::{self, GlobuleAtlas, GlobuleMask, GlobuleStyle},
     properties::{NebulaProperties, derive_nebula_properties},
 };
+use starfield::StarfieldStyle;
 use uniforms::GpuSky;
 
 use crate::system::SystemParams;
@@ -144,7 +148,12 @@ fn sync_sky(
     mut materials: ResMut<Assets<SkyMaterial>>,
 ) {
     if let Some(mut material) = materials.get_mut(&handle.0) {
-        material.params = GpuSky::new(&GlobuleStyle::default(), &system, &nebula);
+        material.params = GpuSky::new(
+            &StarfieldStyle::default(),
+            &GlobuleStyle::default(),
+            &system,
+            &nebula,
+        );
     }
 }
 
@@ -160,7 +169,8 @@ fn show_nebula_fields(
     }
 }
 
-/// Wires up the sky: its parts (`nebula`) and the sphere that draws them.
+/// Wires up the sky: its parts (`nebula`, `starfield`) and the sphere that draws
+/// them.
 pub struct SkyPlugin;
 
 impl Plugin for SkyPlugin {
