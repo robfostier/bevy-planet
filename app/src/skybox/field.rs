@@ -12,9 +12,10 @@ use crate::utils::{contrast, gamma, levels, smoothstep};
 
 use super::params::{NoiseParams, SkyboxParams};
 
-/// Builds a configured `Fbm<Perlin>` from a `NoiseParams`.
-fn build_fbm(params: &NoiseParams) -> Fbm<Perlin> {
-    Fbm::<Perlin>::new(params.seed)
+/// Builds a configured `Fbm<Perlin>` from a `NoiseParams`, its seed offset
+/// by `base_seed`.
+fn build_fbm(params: &NoiseParams, base_seed: u32) -> Fbm<Perlin> {
+    Fbm::<Perlin>::new(params.seed.wrapping_add(base_seed))
         .set_octaves(params.octaves)
         .set_frequency(params.frequency)
         .set_lacunarity(params.lacunarity)
@@ -23,8 +24,8 @@ fn build_fbm(params: &NoiseParams) -> Fbm<Perlin> {
 
 /// Builds a configured `RidgedMulti<Perlin>` from a `NoiseParams`: sharp-ridged
 /// fractal noise, used to carve the nebula's filament structure.
-fn build_ridged(params: &NoiseParams) -> RidgedMulti<Perlin> {
-    RidgedMulti::<Perlin>::new(params.seed)
+fn build_ridged(params: &NoiseParams, base_seed: u32) -> RidgedMulti<Perlin> {
+    RidgedMulti::<Perlin>::new(params.seed.wrapping_add(base_seed))
         .set_octaves(params.octaves)
         .set_frequency(params.frequency)
         .set_lacunarity(params.lacunarity)
@@ -115,23 +116,24 @@ pub(super) struct NebulaSample {
 }
 
 impl NebulaField {
-    /// Builds the generator from the tunable parameters.
-    pub(super) fn new(params: &SkyboxParams) -> Self {
+    /// Builds the generator from the tunable parameters; `base_seed`: the
+    /// nebula's seed (derived from the system seed), every field's offset.
+    pub(super) fn new(params: &SkyboxParams, base_seed: u32) -> Self {
         Self {
-            ridged_noise: build_ridged(&params.ridge.noise),
+            ridged_noise: build_ridged(&params.ridge.noise, base_seed),
             ridge_enabled: params.ridge.enabled,
             ridge_gamma: params.ridge.gamma.value,
             ridge_gamma_enabled: params.ridge.gamma.enabled,
-            mask_noise: build_fbm(&params.mask.noise),
+            mask_noise: build_fbm(&params.mask.noise, base_seed),
             mask_enabled: params.mask.enabled,
             mask_contrast: params.mask.contrast.value,
             mask_contrast_enabled: params.mask.contrast.enabled,
             mask_levels: (params.mask.levels.floor, params.mask.levels.ceil),
             mask_levels_enabled: params.mask.levels.enabled,
-            warp_noise: build_fbm(&params.warp.noise),
+            warp_noise: build_fbm(&params.warp.noise, base_seed),
             warp_strength: params.warp.strength,
             warp_enabled: params.warp.enabled,
-            warp_mask_noise: build_fbm(&params.warp.mask.noise),
+            warp_mask_noise: build_fbm(&params.warp.mask.noise, base_seed),
             warp_mask_enabled: params.warp.mask.enabled,
             warp_mask_contrast: params.warp.mask.contrast.value,
             warp_mask_contrast_enabled: params.warp.mask.contrast.enabled,
@@ -141,7 +143,7 @@ impl NebulaField {
             gamma_enabled: params.gamma.enabled,
             levels: (params.levels.floor, params.levels.ceil),
             levels_enabled: params.levels.enabled,
-            hue_noise: build_fbm(&params.palette.hue.noise),
+            hue_noise: build_fbm(&params.palette.hue.noise, base_seed),
             hue_enabled: params.palette.hue.enabled,
             hue_contrast: params.palette.hue.contrast.value,
             hue_contrast_enabled: params.palette.hue.contrast.enabled,
@@ -150,7 +152,7 @@ impl NebulaField {
                 params.palette.hue.levels.ceil,
             ),
             hue_levels_enabled: params.palette.hue.levels.enabled,
-            drift_noise: build_fbm(&params.palette.drift.noise),
+            drift_noise: build_fbm(&params.palette.drift.noise, base_seed),
             drift_enabled: params.palette.drift.enabled,
             drift_contrast: params.palette.drift.contrast.value,
             drift_contrast_enabled: params.palette.drift.contrast.enabled,

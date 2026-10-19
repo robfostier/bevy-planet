@@ -1,6 +1,7 @@
 //! Image capture for look development, driven by environment variables so a
 //! run can be scripted (each one exits once its capture is written):
 //! - `CAPTURE_WINDOW=WxH`: resizes the window at startup;
+//! - `CAPTURE_SYSTEM=seed,age,metallicity`: sets the system's inputs;
 //! - `CAPTURE_CAMERA=px,py,pz,tx,ty,tz`: pins the game camera at a position,
 //!   looking at a target (overrides the orbit camera);
 //! - `CAPTURE_SCREENSHOT=path.png`: saves the game camera's image after a few
@@ -38,6 +39,14 @@ fn resize_window(mut windows: Query<&mut Window>) {
     };
     for mut window in &mut windows {
         window.resolution.set_physical_resolution(w, h);
+    }
+}
+
+fn set_system(mut system: ResMut<crate::system::SystemParams>) {
+    if let Some([seed, age, metallicity]) = env_numbers::<f32, 3>("CAPTURE_SYSTEM", ',') {
+        system.seed = seed as u32;
+        system.age = age;
+        system.metallicity = metallicity;
     }
 }
 
@@ -114,7 +123,7 @@ fn screenshot(
 
 pub(super) fn build(app: &mut App) {
     app.init_resource::<OffscreenTarget>()
-        .add_systems(Startup, resize_window)
+        .add_systems(Startup, (resize_window, set_system))
         // After the frame's game logic, in a fixed order: the offscreen target
         // first, then the captures (which may end the run).
         .add_systems(

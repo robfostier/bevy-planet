@@ -21,6 +21,7 @@ use crate::skybox::{
     ContrastParams, DriftParams, GammaParams, LevelsParams, MaskParams, NoiseParams, PaletteParams,
     RidgeParams, SkyboxParams, WarpParams,
 };
+use crate::system::SystemParams;
 
 /// Spawns a dedicated 2D overlay camera for the egui inspector, so egui stops
 /// piggybacking on the HDR orbit camera (where the skybox pass drew over it). It
@@ -55,6 +56,9 @@ fn dev_tools_ui(world: &mut World) {
 
     Window::new("Dev Tools UI").show(egui_context.get_mut(), |ui| {
         ScrollArea::both().show(ui, |ui| {
+            CollapsingHeader::new("System").show(ui, |ui| {
+                bevy_inspector::ui_for_resource::<SystemParams>(world, ui);
+            });
             CollapsingHeader::new("Skybox").show(ui, |ui| {
                 bevy_inspector::ui_for_resource::<SkyboxParams>(world, ui);
             });

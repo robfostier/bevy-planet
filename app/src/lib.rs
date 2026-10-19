@@ -5,4 +5,5 @@ pub mod camera;
 pub mod dev_tools;
 pub mod skybox;
 pub mod star_system;
+pub mod system;
 mod utils;

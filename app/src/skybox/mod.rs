@@ -14,6 +14,8 @@ pub(crate) use params::{
 };
 
 use bevy::{image::Image, prelude::*};
+
+use crate::system::SystemParams;
 use color::Palette;
 use cubemap::build_skybox_cubemap_image;
 use field::NebulaField;
@@ -22,17 +24,18 @@ use field::NebulaField;
 /// for a sharper sky at the cost of a longer bake.
 const SKYBOX_RES: u32 = 512;
 
-/// Regenerates the skybox cubemap whenever `SkyboxParams` changes and writes the
+/// Regenerates the skybox cubemap whenever `SkyboxParams` or the system changes and writes the
 /// fresh image into the pre-reserved `SkyboxCubemap` handle, so the orbit camera's
 /// `Skybox` picks it up without being re-spawned. The `resource_changed` run
 /// condition keeps it idle except on parameter edits (and once at startup, when
 /// the resource is first inserted.)
 fn rebuild_skybox_cubemap(
     params: Res<SkyboxParams>,
+    system: Res<SystemParams>,
     cubemap: Res<SkyboxCubemap>,
     mut images: ResMut<Assets<Image>>,
 ) {
-    let field = NebulaField::new(&params);
+    let field = NebulaField::new(&params, system.derive("sky/nebula"));
     let palette = Palette::new(&params);
     let image = build_skybox_cubemap_image(SKYBOX_RES, &field, &palette);
     let _ = images.insert(cubemap.0.id(), image);
@@ -65,7 +68,9 @@ impl Plugin for SkyboxPlugin {
             .init_resource::<SkyboxCubemap>()
             .add_systems(
                 Update,
-                rebuild_skybox_cubemap.run_if(resource_changed::<SkyboxParams>),
+                rebuild_skybox_cubemap.run_if(
+                    resource_changed::<SkyboxParams>.or_else(resource_changed::<SystemParams>),
+                ),
             );
     }
 }
