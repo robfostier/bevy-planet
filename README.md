@@ -1,6 +1,6 @@
 # bevy-planet
 
-A Rust + [Bevy](https://bevyengine.org) 0.19 game exploring procedural planet generation at two linked scales.
+A Rust + [Bevy](https://bevyengine.org) 0.20 game exploring procedural planet generation at two linked scales.
 
 ![A star system aging from its star's birth to its end](docs/images/system-age.webp)
 
@@ -43,7 +43,7 @@ A living star system, all derived from a seed, an age and a metallicity: a physi
 
 ## Requirements
 
-- Rust >= 1.96 (`rustc`, `cargo`) -- developed on the latest stable
+- Rust >= 1.97.1 (`rustc`, `cargo`) -- developed on the latest stable
 - System dependencies, plus `clang` + `lld` (the build links with `lld` via `app/.cargo/config.toml`) on Linux Ubuntu 24.04+:
 
   ```bash
