@@ -1,6 +1,7 @@
 // The gas, composed every frame from the baked fields (`bake.wgsl`) with its
 // look (`NebulaLook`, mirrors `GpuNebulaLook`): the style's shaping and
-// palette, a few sums per pixel.
+// palette, evolved by the nebula's properties. So the system's evolution costs
+// no bake: only these few sums per pixel.
 
 #import "shaders/common/color.wgsl"::{from_oklab, rotate_hue}
 #import "shaders/sky/nebula/gas/curves.wgsl"::{contrast, levels, powf, smooth_unit}
@@ -10,6 +11,7 @@ struct NebulaLook {
     primary: vec4<f32>,
     secondary: vec4<f32>,
     gamma: f32,
+    evaporation: f32,
     mask_floor: f32,
     mask_ceil: f32,
     mask_contrast: f32,
@@ -32,9 +34,11 @@ fn voids(noise: f32, floor: f32, look: NebulaLook) -> f32 {
     return contrast(smooth_unit(levels(noise, floor, look.mask_ceil)), look.mask_contrast);
 }
 
-// The gas's density: the filaments carved by the voids.
+// The gas's density: the filaments (their thin edges evaporated: the ridge's
+// low end cut, then stretched back to full) carved by the voids.
 fn gas_density(fields: vec4<f32>, look: NebulaLook) -> f32 {
-    return powf(fields.r, look.gamma) * voids(fields.g, look.mask_floor, look);
+    let ridge = max(fields.r - look.evaporation, 0.0) / (1.0 - look.evaporation);
+    return powf(ridge, look.gamma) * voids(fields.g, look.mask_floor, look);
 }
 
 // The gas's colour (baked units): the palette's two colours, their hue

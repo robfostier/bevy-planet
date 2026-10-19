@@ -15,12 +15,13 @@
 #import "shaders/common/color.wgsl"::{LUMA, from_oklab, to_oklab}
 #import "shaders/sky/nebula/globules/shape.wgsl"::EXTENT
 #import "shaders/sky/nebula/gas/look.wgsl"::{NebulaLook, cube_texel, gas_color}
+#import "shaders/sky/nebula/globules/carry.wgsl"::{CARRY_MARGIN, carried}
 #import "shaders/sky/nebula/globules/gilding.wgsl"::gild
 #import "shaders/sky/nebula/globules/look.wgsl"::GlobuleLook
 #import "shaders/sky/nebula/globules/light.wgsl"::light_side
 #import "shaders/sky/nebula/globules/rim.wgsl"::lit_edge
 #import "shaders/sky/nebula/globules/tile.wgsl"::{TILES, distance_at}
-#import "shaders/sky/nebula/globules/scatter.wgsl"::{Scatter, TIERS, cell_hash, crowded, globule_at, near_cell, tier}
+#import "shaders/sky/nebula/globules/scatter.wgsl"::{Scatter, TIERS, cell_hash, crowded, globule_at, near_cell, globule_presence, tier}
 
 // The dust's own dim light (scattered from the nebula all around): a dark,
 // neutral brown, as a share of the gas's luminance.
@@ -43,6 +44,10 @@ struct Hit {
     radius: f32,
     // Its draw for being front-lit (0..1).
     front: f32,
+    // How much of it shows (0..1), with the density.
+    presence: f32,
+    // The pixel's point in the style's sky, carried with the globule.
+    anchor: vec3<f32>,
 }
 
 struct Globules {
@@ -53,29 +58,33 @@ struct Globules {
 }
 
 // `gas`: the gas shown in `dir` (display units; `scale` turns the baked
-// fields' units into them); `pixel_angle`: the angle one pixel spans.
+// fields' units into them); `point`: the style's point shown in `dir` (the
+// globules live in the style's sky and ride the gas, see `carry.wgsl`);
+// `pixel_angle`: the angle one pixel spans.
 fn globules(
     nebula: texture_cube<f32>,
     nebula_sampler: sampler,
     atlas: texture_2d<f32>,
     atlas_sampler: sampler,
+    carry: texture_cube<f32>,
     density: texture_cube<f32>,
     mask: texture_cube<f32>,
     scale: f32,
     dir: vec3<f32>,
     gas: vec3<f32>,
+    point: vec3<f32>,
     pixel_angle: f32,
     look: NebulaLook,
     g: GlobuleLook,
 ) -> Globules {
     // The tiers whose globules may show here (`mask.wgsl`); none on most of
     // the sky, left to the gas without searching.
-    let tiers = cube_texel(mask, nebula_sampler, dir);
+    let tiers = cube_texel(mask, nebula_sampler, point);
     if (all(tiers.rgb <= vec3(0.0))) {
         return Globules(gas, 1.0);
     }
     // SCATTER (`scatter.wgsl`): tiers of sizes, few large, many small.
-    let scatter = Scatter(g.count_large, g.count_small, g.size, g.size_variation, g.draw_start);
+    let scatter = Scatter(g.count_large, g.count_small, g.size, g.size_variation, g.draw_start, g.density);
     // The nearest globule under this pixel wins (the smallest signed
     // distance); the rest of the sky is left to the gas.
     var best = 1e3;
@@ -86,17 +95,24 @@ fn globules(
         }
         let level = tier(t, scatter);
         for (var k = 0; k < 8; k++) {
-            let cell = near_cell(dir, level, k);
-            let globule = globule_at(cell, level, scatter);
+            let cell = near_cell(point, level, k);
+            let globule = globule_at(cell, level, scatter, max(scatter.density, 1.0));
             let center = globule.xyz;
             let radius = globule.w;
-            let offset = dir - center;
-            if (radius <= 0.0 || length(offset) > EXTENT * radius) {
+            // Near enough in the style's sky (with a margin: the gas carries
+            // it), then where the gas at its centre carries it, as one piece.
+            if (radius <= 0.0 || length(point - center) > CARRY_MARGIN * EXTENT * radius) {
+                continue;
+            }
+            let shown = carried(carry, nebula_sampler, center);
+            let offset = dir - shown;
+            if (length(offset) > EXTENT * radius) {
                 continue;
             }
             // SHAPE, in its frame (y away from the light, x across): its tile.
-            let to_light = light_side(density, nebula_sampler, center, radius);
-            let q = vec2(dot(offset, cross(center, -to_light)), dot(offset, -to_light)) / radius;
+            let lit = light_side(density, nebula_sampler, center, radius);
+            let to_light = normalize(lit - dot(lit, shown) * shown);
+            let q = vec2(dot(offset, cross(shown, -to_light)), dot(offset, -to_light)) / radius;
             let h = cell_hash(cell, t, scatter);
             let shape = floor(fract(h.z * 91.3 + h.w * 17.1) * TILES * TILES);
             let tile = vec3(shape % TILES, floor(shape / TILES), select(1.0, -1.0, fract(h.y * 7.7) > 0.5));
@@ -107,7 +123,7 @@ fn globules(
                 continue;
             }
             best = d;
-            hit = Hit(q, to_light, tile, shape, radius, fract(h.w * 53.7 + h.x * 3.1));
+            hit = Hit(q, to_light, tile, shape, radius, fract(h.w * 53.7 + h.x * 3.1), globule_presence(cell, level, scatter), center + offset);
         }
     }
     if (best >= 1e3) {
@@ -117,8 +133,8 @@ fn globules(
     // Everything of a globule scales with its opacity (at 0 nothing is left)
     // and, pixel by pixel, with the nebula's density behind it (whatever its
     // colour): none below `gas_faint`, full from `gas_full`.
-    let placed = cube_texel(density, nebula_sampler, dir).r;
-    let strength = g.opacity * smoothstep(g.gas_faint, g.gas_full, placed);
+    let placed = cube_texel(density, nebula_sampler, hit.anchor).r;
+    let strength = g.opacity * smoothstep(g.gas_faint, g.gas_full, placed) * hit.presence;
     // The light: the hue of the gas behind at full saturation, as strong as
     // the brighter of that gas and the gas on the light's side.
     let beside = gas_color(cube_texel(nebula, nebula_sampler, dir + hit.side * g.size * 0.3), look) * scale;

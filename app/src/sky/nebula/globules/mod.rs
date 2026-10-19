@@ -101,12 +101,15 @@ pub(crate) struct GpuGlobules {
     front_lit: f32,
     front_intensity: f32,
     gilding: f32,
+    /// The gas left, relative to the style (1).
+    density: f32,
 }
 
 impl GpuGlobules {
     /// The globules' uniforms; `base_seed`: their seed (derived from the system
-    /// seed), offset by `seed_offset`.
-    pub(crate) fn new(g: &GlobuleStyle, base_seed: u32) -> Self {
+    /// seed), offset by `seed_offset`; `density`: the gas left, relative to the
+    /// style (fades globules in or out).
+    pub(crate) fn new(g: &GlobuleStyle, base_seed: u32, density: f32) -> Self {
         // Where the draws start, in 0..1000: bounded, so the shader's sine hash
         // keeps its precision whatever the seed.
         let seed = f64::from(base_seed.wrapping_add(g.seed_offset));
@@ -126,6 +129,7 @@ impl GpuGlobules {
             front_lit: g.front_lit,
             front_intensity: g.front_intensity,
             gilding: g.gilding,
+            density,
         }
     }
 }

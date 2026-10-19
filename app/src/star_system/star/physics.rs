@@ -77,6 +77,16 @@ fn main_sequence_luminosity(mass: f32) -> f32 {
 }
 
 impl StarProperties {
+    /// How bright the star is, from the faintest star the player can pick (0)
+    /// to the brightest (1), on a log scale.
+    pub(crate) fn brightness(&self) -> f32 {
+        let (faintest, brightest) = (
+            main_sequence_luminosity(LIGHTEST).ln(),
+            main_sequence_luminosity(HEAVIEST).ln(),
+        );
+        ((self.luminosity.ln() - faintest) / (brightest - faintest)).clamp(0.0, 1.0)
+    }
+
     pub(crate) fn new(params: &StarParams, system: &SystemParams) -> Self {
         let (mass, z) = (params.suns(), system.metallicity_dex());
         // How far along its main sequence the star is (1: its core runs out),

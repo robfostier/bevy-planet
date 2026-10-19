@@ -27,7 +27,8 @@ struct Bake {
     buoyancy: f32,
     // The jump-flood step, in texels.
     step_: i32,
-    pad: f32,
+    // How far the edges' tearing noise has slid with the system's age.
+    slide: f32,
     // The atlas row the slice being baked starts at (whole rows of tiles; the
     // scratch textures hold that slice alone).
     row_offset: i32,
@@ -75,7 +76,7 @@ fn shape(@builtin(global_invocation_id) id: vec3<u32>) {
     let texel = vec2<i32>(id.xy);
     let p = frame(texel + vec2(0, shape_bake.row_offset));
     let footprint = 2.0 * EXTENT / f32(TILE);
-    let f = globule_field(p.xy, p.z, footprint, shape_bake.buoyancy);
+    let f = globule_field(p.xy, p.z, footprint, shape_bake.buoyancy, shape_bake.slide);
     textureStore(field_out, texel, vec4(f));
     let own = pack(vec2<f32>(texel));
     textureStore(seeds_out, texel, select(vec4(NONE_PACKED, own, 0u, 0u), vec4(own, NONE_PACKED, 0u, 0u), f > 0.0));

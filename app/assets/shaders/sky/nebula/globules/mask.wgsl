@@ -1,11 +1,13 @@
-// The globules' mask: a low-resolution cubemap of the sky, per tier (r, g, b:
-// tiers 0, 1, 2), 1 wherever one of its globules may show (within its reach,
-// with a texel's slack; not dropped for a larger one; over gas dense enough
-// to show it), 0 elsewhere. The sky reads it once per pixel and searches only
-// the tiers it shows. Baked for each system seed (`globules/mask`).
+// The globules' mask: a low-resolution cubemap of the style's sky, per tier
+// (r, g, b: tiers 0, 1, 2), 1 wherever one of its globules may show (within
+// its reach, with the carry's margin and a texel's slack; not dropped for a
+// larger one; over gas dense enough to show it), 0 elsewhere. The sky reads
+// it once per pixel and searches only the tiers it shows. Baked for each
+// system seed, with the most gas a cloud keeps (`globules/mask`).
 
 #import "shaders/common/cube.wgsl"::texel_direction
 #import "shaders/sky/nebula/gas/look.wgsl"::cube_texel
+#import "shaders/sky/nebula/globules/carry.wgsl"::CARRY_MARGIN
 #import "shaders/sky/nebula/globules/scatter.wgsl"::{Scatter, TIERS, crowded, globule_at, tier}
 #import "shaders/sky/nebula/globules/shape.wgsl"::EXTENT
 
@@ -18,9 +20,9 @@ struct MaskBake {
     size: f32,
     variation: f32,
     draw_start: f32,
+    density: f32,
     gas_faint: f32,
     resolution: u32,
-    pad: u32,
 }
 
 @group(0) @binding(0) var mask_out: texture_storage_2d_array<rgba8unorm, write>;
@@ -55,8 +57,8 @@ fn may_show(point: vec3<f32>, t: i32, s: Scatter, slack: f32) -> bool {
     let base = floor(point * level.cells) - 1.0;
     for (var k = 0; k < 27; k++) {
         let cell = base + vec3(f32(k % 3), f32((k / 3) % 3), f32(k / 9));
-        let globule = globule_at(cell, level, s);
-        if (globule.w > 0.0 && length(point - globule.xyz) < EXTENT * globule.w + slack && !crowded(globule, t, s)) {
+        let globule = globule_at(cell, level, s, max(s.density, 1.0));
+        if (globule.w > 0.0 && length(point - globule.xyz) < CARRY_MARGIN * EXTENT * globule.w + slack && !crowded(globule, t, s)) {
             return true;
         }
     }
@@ -69,7 +71,7 @@ fn bake_mask(@builtin(global_invocation_id) id: vec3<u32>) {
     if (id.x >= res || id.y >= res) {
         return;
     }
-    let s = Scatter(bake.count_large, bake.count_small, bake.size, bake.variation, bake.draw_start);
+    let s = Scatter(bake.count_large, bake.count_small, bake.size, bake.variation, bake.draw_start, bake.density);
     let point = texel_direction(id.xy, id.z, res);
     // A texel spans at most 2 / res radians (at a face's centre).
     let slack = SLACK_TEXELS * 2.0 / f32(res);

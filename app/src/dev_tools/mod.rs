@@ -17,6 +17,7 @@ use bevy_inspector_egui::{
     bevy_inspector,
 };
 
+use crate::sky::nebula::properties::NebulaProperties;
 use crate::star_system::star::{StarParams, StarProperties};
 use crate::system::SystemParams;
 
@@ -66,6 +67,10 @@ fn dev_tools_ui(world: &mut World) {
                 ui.push_id("star_properties", |ui| {
                     bevy_inspector::ui_for_resource::<StarProperties>(world, ui);
                 });
+            });
+            CollapsingHeader::new("Nebula").show(ui, |ui| {
+                ui.label("Derived:");
+                bevy_inspector::ui_for_resource::<NebulaProperties>(world, ui);
             });
         });
     });

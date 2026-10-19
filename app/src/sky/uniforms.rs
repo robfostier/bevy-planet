@@ -10,6 +10,7 @@ use super::{
     nebula::{
         gas::GpuNebulaLook,
         globules::{self, GlobuleStyle, GpuGlobules},
+        properties::NebulaProperties,
     },
 };
 
@@ -21,11 +22,19 @@ pub(super) struct GpuSky {
 }
 
 impl GpuSky {
-    pub(super) fn new(globules: &GlobuleStyle, system: &SystemParams) -> Self {
+    pub(super) fn new(
+        globules: &GlobuleStyle,
+        system: &SystemParams,
+        nebula: &NebulaProperties,
+    ) -> Self {
         Self {
             nebula_brightness: NEBULA_BRIGHTNESS,
-            nebula_look: GpuNebulaLook::new(),
-            globule_look: GpuGlobules::new(globules, system.derive(globules::SEED_PATH)),
+            nebula_look: nebula.look(),
+            globule_look: GpuGlobules::new(
+                globules,
+                system.derive(globules::SEED_PATH),
+                nebula.gas_left(),
+            ),
         }
     }
 }

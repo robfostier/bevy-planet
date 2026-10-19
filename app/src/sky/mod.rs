@@ -23,6 +23,7 @@ use bevy::{
 use nebula::{
     gas::NebulaCubemaps,
     globules::{self, GlobuleAtlas, GlobuleMask, GlobuleStyle},
+    properties::{NebulaProperties, derive_nebula_properties},
 };
 use uniforms::GpuSky;
 
@@ -49,11 +50,14 @@ struct SkyMaterial {
     #[texture(3)]
     #[sampler(4)]
     atlas: Handle<Image>,
-    /// The style's density: the globules' light and placement.
+    /// Where the style's gas now shows: the globules ride it.
     #[texture(5, dimension = "cube")]
+    carry: Handle<Image>,
+    /// The style's density: the globules' light and placement.
+    #[texture(6, dimension = "cube")]
     density: Handle<Image>,
     /// Where a globule may show (the sky searches for them only there).
-    #[texture(6, dimension = "cube")]
+    #[texture(7, dimension = "cube")]
     globule_mask: Handle<Image>,
 }
 
@@ -112,10 +116,11 @@ fn spawn_sky(
     mut materials: ResMut<Assets<SkyMaterial>>,
 ) {
     let material = materials.add(SkyMaterial {
-        // Filled by `sync_sky`, on its first run.
+        // Filled from the tunables by `sync_sky`, on its first run.
         params: GpuSky::default(),
-        nebula: cubemaps.fields.clone(),
+        nebula: cubemaps.shown.clone(),
         atlas: atlas.0.clone(),
+        carry: cubemaps.carry.clone(),
         density: cubemaps.density.clone(),
         globule_mask: mask.0.clone(),
     });
@@ -133,12 +138,25 @@ fn spawn_sky(
 }
 
 fn sync_sky(
+    nebula: Res<NebulaProperties>,
     system: Res<SystemParams>,
     handle: Res<SkyHandle>,
     mut materials: ResMut<Assets<SkyMaterial>>,
 ) {
     if let Some(mut material) = materials.get_mut(&handle.0) {
-        material.params = GpuSky::new(&GlobuleStyle::default(), &system);
+        material.params = GpuSky::new(&GlobuleStyle::default(), &system, &nebula);
+    }
+}
+
+/// Points the sky at the nebula's fields to read: the full ones, or their
+/// preview while the age keeps changing.
+fn show_nebula_fields(
+    cubemaps: Res<NebulaCubemaps>,
+    handle: Res<SkyHandle>,
+    mut materials: ResMut<Assets<SkyMaterial>>,
+) {
+    if let Some(mut material) = materials.get_mut(&handle.0) {
+        material.nebula = cubemaps.shown.clone();
     }
 }
 
@@ -150,6 +168,18 @@ impl Plugin for SkyPlugin {
         nebula::build(app);
         app.add_plugins(MaterialPlugin::<SkyMaterial>::default())
             .add_systems(Startup, spawn_sky)
-            .add_systems(Update, sync_sky.run_if(resource_changed::<SystemParams>));
+            .add_systems(
+                Update,
+                sync_sky
+                    .run_if(
+                        resource_changed::<NebulaProperties>
+                            .or_else(resource_changed::<SystemParams>),
+                    )
+                    .after(derive_nebula_properties),
+            )
+            .add_systems(
+                Update,
+                show_nebula_fields.run_if(resource_changed::<NebulaCubemaps>),
+            );
     }
 }

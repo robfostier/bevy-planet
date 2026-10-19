@@ -15,6 +15,10 @@ const CELL_SPAN: f32 = 2.4;
 // How much of their reach two globules may not share (EXTENT is generous:
 // their silhouettes rarely fill it).
 const KEEP_CLEAR: f32 = 0.7;
+// A globule crossing its threshold, as the density changes, fades over this
+// share of its own margin (its draw's distance to the threshold).
+const FADE_DEPTH: f32 = 0.5;
+
 // The scatter's settings.
 struct Scatter {
     count_large: f32,
@@ -25,6 +29,8 @@ struct Scatter {
     // Where the draws start (0..1000), from the seed: another start draws
     // another sky of globules (placement, shapes, light).
     draw_start: f32,
+    // The gas left, relative to the base (1): scales how many globules show.
+    density: f32,
 }
 
 fn hash4(cell: vec3<f32>) -> vec4<f32> {
@@ -81,9 +87,10 @@ fn near_cell(dir: vec3<f32>, level: Tier, k: i32) -> vec3<f32> {
 }
 
 // The globule of a tier in `cell`, if any: its centre (xyz, on the sphere)
-// and head radius (w; 0 when the cell is empty).
-fn globule_at(cell: vec3<f32>, level: Tier, s: Scatter) -> vec4<f32> {
-    if (cell_draw(cell, level.index, s) > level.chance) {
+// and head radius (w; 0 when the cell is empty). `reach`: how far past the
+// base share of occupied cells to look (the density, above 1).
+fn globule_at(cell: vec3<f32>, level: Tier, s: Scatter, reach: f32) -> vec4<f32> {
+    if (cell_draw(cell, level.index, s) > level.chance * reach) {
         return vec4(0.0);
     }
     let h = cell_hash(cell, level.index, s);
@@ -96,13 +103,25 @@ fn globule_at(cell: vec3<f32>, level: Tier, s: Scatter) -> vec4<f32> {
     return vec4(normalize(drawn), radius);
 }
 
+// How much of the globule in `cell` shows (0..1): all of it for the base sky;
+// as the density changes, the globules whose draw nears its threshold fade in
+// or out over a range as deep as their own margin, so none ever pops.
+fn globule_presence(cell: vec3<f32>, level: Tier, s: Scatter) -> f32 {
+    let draw = cell_draw(cell, level.index, s);
+    let fade = FADE_DEPTH * level.chance * abs(1.0 - s.density);
+    let fading_out = select(0.0, 1.0, s.density < 1.0);
+    return clamp((level.chance * s.density - draw) / max(fade, 1e-9) + fading_out, 0.0, 1.0);
+}
+
 // Whether a larger tier already has a globule where tier `t`'s globule
 // `candidate` (centre, radius) would stand.
 fn crowded(candidate: vec4<f32>, t: i32, s: Scatter) -> bool {
     for (var u = 0; u < t; u++) {
         let level = tier(u, s);
         for (var k = 0; k < 8; k++) {
-            let other = globule_at(near_cell(candidate.xyz, level, k), level, s);
+            // The base sky's globules: the crowding never changes with the
+            // density, so no globule pops out when another fades in.
+            let other = globule_at(near_cell(candidate.xyz, level, k), level, s, 1.0);
             if (other.w > 0.0 && length(candidate.xyz - other.xyz) < KEEP_CLEAR * EXTENT * (candidate.w + other.w)) {
                 return true;
             }

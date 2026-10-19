@@ -1,7 +1,8 @@
 //! The globules' mask (`assets/shaders/sky/nebula/globules/mask.wgsl`): a
-//! low-resolution cubemap of where a globule may show, baked on the GPU for
-//! each system seed, after the gas (it reads the style's density). The sky
-//! skips its search for globules wherever it is 0.
+//! low-resolution cubemap of where a globule may show at any age (with the
+//! most gas a cloud keeps), baked on the GPU for each system seed, after the
+//! gas (it reads the style's density). The sky skips its search for globules
+//! wherever it is 0.
 
 mod pipeline;
 
@@ -20,6 +21,7 @@ use pipeline::{GpuMaskBake, MaskBakeState, init_mask_pipeline, prepare_mask_bake
 
 use super::{GlobuleStyle, GpuGlobules, SEED_PATH};
 use crate::sky::nebula::gas::{NebulaBakeSet, NebulaCubemaps};
+use crate::sky::nebula::properties::MOST_GAS_LEFT;
 use crate::system::SystemParams;
 
 const SHADER_ASSET_PATH: &str = "shaders/sky/nebula/globules/mask.wgsl";
@@ -66,7 +68,8 @@ fn init_mask(mask: Res<GlobuleMask>, mut images: ResMut<Assets<Image>>) {
     let _ = images.insert(mask.0.id(), image);
 }
 
-/// Bakes the mask of the globules' scatter for a new seed.
+/// Bakes the mask of the globules' scatter for a new seed: with the most gas
+/// a cloud keeps, so it holds whatever the age (no bake as it changes).
 fn queue_bake(
     mut commands: Commands,
     mask: Res<GlobuleMask>,
@@ -79,7 +82,11 @@ fn queue_bake(
         return;
     }
     *baked_seed = Some(system.seed);
-    let globules = GpuGlobules::new(&GlobuleStyle::default(), system.derive(SEED_PATH));
+    let globules = GpuGlobules::new(
+        &GlobuleStyle::default(),
+        system.derive(SEED_PATH),
+        MOST_GAS_LEFT,
+    );
     *generation += 1;
     commands.insert_resource(MaskBakeJob {
         bake: GpuMaskBake::new(&globules, RESOLUTION),

@@ -2,7 +2,7 @@
 //! (shape, jump-flood step, resolve), and their dispatches
 //! (once per bake request, prepared by `bake`).
 
-use std::borrow::Cow;
+use std::{borrow::Cow, sync::atomic::Ordering};
 
 use bevy::{
     prelude::*,
@@ -16,7 +16,7 @@ use bevy::{
 };
 
 use super::{
-    SHADER_ASSET_PATH, SIZE, SLICE_ROWS,
+    AtlasBakedGeneration, SHADER_ASSET_PATH, SIZE, SLICE_ROWS,
     bake::{AtlasBakeState, GpuBake},
     shader_defs,
 };
@@ -98,6 +98,7 @@ pub(super) fn run_atlas_bake(
     mut state: ResMut<AtlasBakeState>,
     pipeline: Res<AtlasPipeline>,
     pipeline_cache: Res<PipelineCache>,
+    done: Option<Res<AtlasBakedGeneration>>,
 ) {
     let Some([shape, flood, resolve]) = pipeline
         .pipelines
@@ -135,4 +136,7 @@ pub(super) fn run_atlas_bake(
         dispatch(resolve, resolve_group);
     }
     state.baked_generation = bake.generation;
+    if let Some(done) = done {
+        done.0.store(bake.generation, Ordering::Relaxed);
+    }
 }

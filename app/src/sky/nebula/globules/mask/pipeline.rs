@@ -30,9 +30,9 @@ pub(super) struct GpuMaskBake {
     size: f32,
     variation: f32,
     draw_start: f32,
+    density: f32,
     gas_faint: f32,
     resolution: u32,
-    pad: u32,
 }
 
 impl GpuMaskBake {
@@ -43,9 +43,9 @@ impl GpuMaskBake {
             size: g.size,
             variation: g.size_variation,
             draw_start: g.draw_start,
+            density: g.density,
             gas_faint: g.gas_faint,
             resolution,
-            pad: 0,
         }
     }
 }

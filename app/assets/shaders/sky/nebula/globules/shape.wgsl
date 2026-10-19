@@ -147,8 +147,10 @@ fn tear(q: vec2<f32>, seed: f32, footprint: f32) -> f32 {
 }
 
 // The silhouette's field (> 0 inside, 0 on its edge). `footprint`: one
-// texel of the atlas, in head radii.
-fn globule_field(q: vec2<f32>, seed: f32, footprint: f32, buoyancy: f32) -> f32 {
+// texel of the atlas, in head radii; `slide`: how far the edges' tearing noise
+// has slid with the system's age (its own noise, so the edges deform
+// continuously and stay of the same kind; the family and its bumps stay).
+fn globule_field(q: vec2<f32>, seed: f32, footprint: f32, buoyancy: f32, slide: f32) -> f32 {
     let soft = 0.25 + 0.15 * hash(seed, 120.0);
     let e = 1.0 - clamp((envelope(q, seed) + soft) / (2.0 * soft), 0.0, 1.0);
     let env = e * e * (3.0 - 2.0 * e);
@@ -168,6 +170,6 @@ fn globule_field(q: vec2<f32>, seed: f32, footprint: f32, buoyancy: f32) -> f32 
         cell *= 0.5;
         a *= 0.55;
     }
-    let detail = strength * tear(q * f, seed, footprint * f) + buoyancy * (bumps - 0.6);
+    let detail = strength * tear(q * f, seed + slide, footprint * f) + buoyancy * (bumps - 0.6);
     return env - 0.5 + detail * band;
 }

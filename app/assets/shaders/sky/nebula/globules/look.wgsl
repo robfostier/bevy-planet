@@ -20,4 +20,6 @@ struct GlobuleLook {
     // Stops.
     front_intensity: f32,
     gilding: f32,
+    // The gas left, relative to the style (1).
+    density: f32,
 }

@@ -12,14 +12,14 @@ use bevy::{
     },
 };
 
-use super::{AtlasBakeJob, REACH, SIZE, SLICE_ROWS, SLICES, pipeline::AtlasPipeline};
+use super::{AtlasBakeJob, REACH, SIZE, SLICE_ROWS, pipeline::AtlasPipeline};
 
 /// Mirrors `Bake` in `atlas.wgsl`.
 #[derive(Clone, Copy, Default, ShaderType)]
 pub(super) struct GpuBake {
     buoyancy: f32,
     step: i32,
-    pad: f32,
+    slide: f32,
     row_offset: i32,
 }
 
@@ -107,10 +107,11 @@ pub(super) fn prepare_atlas_bake(
     let bake = |step, slice: u32| GpuBake {
         buoyancy: job.buoyancy,
         step,
-        pad: 0.0,
+        slide: job.slide,
         row_offset: (slice * SLICE_ROWS) as i32,
     };
-    let slices = 0..SLICES;
+    let [first, count] = job.slices;
+    let slices = first..first + count;
 
     let shapes = slices
         .clone()
