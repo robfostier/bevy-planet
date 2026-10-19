@@ -1,5 +1,5 @@
-//! The star's uniforms, mirroring the structs of `star.wgsl` and
-//! `corona.wgsl`.
+//! The star's uniforms, mirroring the structs of `star.wesl` and
+//! `corona.wesl`.
 
 use bevy::{prelude::*, render::render_resource::ShaderType};
 

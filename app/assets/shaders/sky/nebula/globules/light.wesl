@@ -2,9 +2,9 @@
 // gas around it (its density, not its colour or its evolution, so the globule
 // keeps its orientation whatever the palette or the system's age).
 
-#import "shaders/sky/nebula/gas/look.wgsl"::cube_texel
+import package::shaders::sky::nebula::gas::look::cube_texel;
 
-// `density`: the style's density (`gas/bake.wgsl`); `center`, `radius`: the
+// `density`: the style's density (`gas/bake.wesl`); `center`, `radius`: the
 // globule, in the style's sky.
 fn light_side(density: texture_cube<f32>, density_sampler: sampler, center: vec3<f32>, radius: f32) -> vec3<f32> {
     let up = cross(vec3(0.0, 1.0, 0.0), center);

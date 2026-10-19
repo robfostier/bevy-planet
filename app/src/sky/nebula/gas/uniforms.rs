@@ -1,4 +1,4 @@
-//! The bake's uniforms, mirroring `NebulaParams` in `bake.wgsl`: the style's
+//! The bake's uniforms, mirroring `NebulaParams` in `bake.wesl`: the style's
 //! noise fields (see `noise`), its warp and the shaping of its gas (for the
 //! globules), and how far the warp's noise has slid with the system's age.
 

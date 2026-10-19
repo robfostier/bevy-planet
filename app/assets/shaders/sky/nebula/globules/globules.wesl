@@ -1,27 +1,27 @@
 // Bok globules: clumps of dust in front of the nebula, backlit by its gas,
 // computed per screen pixel as a small node graph:
-//   SCATTER    large and small globules (`scatter.wgsl`).
+//   SCATTER    large and small globules (`scatter.wesl`).
 //   PLACEMENT  per pixel, the nebula's density: none below `gas_faint`, full
 //              from `gas_full`; the gas around a globule sets its light's side.
-//   SHAPE      a tile of the atlas (`atlas.wgsl`), in that frame:
+//   SHAPE      a tile of the atlas (`atlas.wesl`), in that frame:
 //              the shape's exact signed distance, so edges and rims are a
 //              fixed number of pixels whatever a globule's size.
 //   DENSITY    optical depth: thin edge, opaque core (`opacity`: 0..1).
-//   RIM        the edge on the light's side (`rim.wgsl`), gilded with
-//              strokes of gold (`gilding.wgsl`); front-lit globules whole.
+//   RIM        the edge on the light's side (`rim.wesl`), gilded with
+//              strokes of gold (`gilding.wesl`); front-lit globules whole.
 //   composite  gas * exp(-tau) + DUST * (1 - exp(-tau)) + light * rim
 
-#import "shaders/common/gradient_noise.wgsl"::gnoise
-#import "shaders/common/color.wgsl"::{LUMA, from_oklab, to_oklab}
-#import "shaders/sky/nebula/globules/shape.wgsl"::EXTENT
-#import "shaders/sky/nebula/gas/look.wgsl"::{NebulaLook, cube_texel, gas_color}
-#import "shaders/sky/nebula/globules/carry.wgsl"::{CARRY_MARGIN, carried}
-#import "shaders/sky/nebula/globules/gilding.wgsl"::gild
-#import "shaders/sky/nebula/globules/look.wgsl"::GlobuleLook
-#import "shaders/sky/nebula/globules/light.wgsl"::light_side
-#import "shaders/sky/nebula/globules/rim.wgsl"::lit_edge
-#import "shaders/sky/nebula/globules/tile.wgsl"::{TILES, distance_at}
-#import "shaders/sky/nebula/globules/scatter.wgsl"::{Scatter, TIERS, cell_hash, crowded, globule_at, near_cell, globule_presence, tier}
+import package::shaders::common::gradient_noise::gnoise;
+import package::shaders::common::color::{LUMA, from_oklab, to_oklab};
+import package::shaders::sky::nebula::globules::shape::EXTENT;
+import package::shaders::sky::nebula::gas::look::{NebulaLook, cube_texel, gas_color};
+import package::shaders::sky::nebula::globules::carry::{CARRY_MARGIN, carried};
+import package::shaders::sky::nebula::globules::gilding::gild;
+import package::shaders::sky::nebula::globules::look::GlobuleLook;
+import package::shaders::sky::nebula::globules::light::light_side;
+import package::shaders::sky::nebula::globules::rim::lit_edge;
+import package::shaders::sky::nebula::globules::tile::{TILES, distance_at};
+import package::shaders::sky::nebula::globules::scatter::{Scatter, TIERS, cell_hash, crowded, globule_at, near_cell, globule_presence, tier};
 
 // The dust's own dim light (scattered from the nebula all around): a dark,
 // neutral brown, as a share of the gas's luminance.
@@ -59,7 +59,7 @@ struct Globules {
 
 // `gas`: the gas shown in `dir` (display units; `scale` turns the baked
 // fields' units into them); `point`: the style's point shown in `dir` (the
-// globules live in the style's sky and ride the gas, see `carry.wgsl`);
+// globules live in the style's sky and ride the gas, see `carry.wesl`);
 // `pixel_angle`: the angle one pixel spans.
 fn globules(
     nebula: texture_cube<f32>,
@@ -77,13 +77,13 @@ fn globules(
     look: NebulaLook,
     g: GlobuleLook,
 ) -> Globules {
-    // The tiers whose globules may show here (`mask.wgsl`); none on most of
+    // The tiers whose globules may show here (`mask.wesl`); none on most of
     // the sky, left to the gas without searching.
     let tiers = cube_texel(mask, nebula_sampler, point);
     if (all(tiers.rgb <= vec3(0.0))) {
         return Globules(gas, 1.0);
     }
-    // SCATTER (`scatter.wgsl`): tiers of sizes, few large, many small.
+    // SCATTER (`scatter.wesl`): tiers of sizes, few large, many small.
     let scatter = Scatter(g.count_large, g.count_small, g.size, g.size_variation, g.draw_start, g.density);
     // The nearest globule under this pixel wins (the smallest signed
     // distance); the rest of the sky is left to the gas.

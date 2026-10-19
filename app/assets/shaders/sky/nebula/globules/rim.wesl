@@ -1,7 +1,7 @@
-// A globule's lit edge, read from its atlas tile (`tile.wgsl`): how far a
+// A globule's lit edge, read from its atlas tile (`tile.wesl`): how far a
 // pixel lies from the edge facing the light.
 
-#import "shaders/sky/nebula/globules/tile.wgsl"::distance_at
+import package::shaders::sky::nebula::globules::tile::distance_at;
 
 // How far past the lit edge (head radii) the gas must be open for the rim
 // (not a hole's inner wall).

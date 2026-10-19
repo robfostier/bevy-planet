@@ -310,3 +310,21 @@ Learned
 Next
 
 - Back to the core: the procedural planet.
+
+## 2026-10-19 -- Stack update: Rust 1.99, Bevy 0.20, WESL
+
+Done
+
+- Fixed the CI on recent Rust: an untyped float literal falling back to `f32` is now a lint (`float_literal_f32_fallback`), an error under `-D warnings`; the inspector sliders' `speed` values are typed `f32`.
+- Upgraded to Bevy 0.20 and bevy-inspector-egui 0.38, and every other dependency to its latest version, on Rust 1.99.
+- Ported all the shaders from naga_oil WGSL to WESL; the rendered sky is identical to the pixel.
+
+Learned
+
+- Bevy 0.20 drops naga_oil for WESL: a `.wgsl` file is now compiled as plain WGSL, its `#import` lines left unresolved (a parse error at the first `#`). The port is mechanical: `import package::shaders::...;` for our own modules, `bevy_pbr::render::...` for Bevy's, `constants::NAME` for valued shader defs, `@if(...)` for `#ifdef`.
+- Extracted resources now name their sub-app (`#[extract_app(RenderApp)]`), and picking events are plain types such as `PointerClick` (which carries a click `count`, a ready-made double-click).
+- A new release can be on crates.io before Cargo's local sparse index knows it: `cargo update` refreshes it (here, `bevy_dylib` for `dynamic_linking`).
+
+Next
+
+- A refactor branch on code quality: the user's own style, idiomatic Rust, the right types, shared constants, respected domains, and a real review of the tests.

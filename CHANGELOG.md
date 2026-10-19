@@ -29,6 +29,7 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), ver
 
 ### Changed
 
+- Upgraded from Bevy 0.19 to 0.20 and bevy-inspector-egui 0.37 to 0.38; every shader is now WESL (`.wesl`), Bevy's shader language since 0.20. Requires Rust 1.97.1 or later.
 - Sky performance at 4K: main pass from 7.9 ms to 3.7 ms -- 4.9 ms with an identical image (a per-tier mask of where globules may show, tighter star pruning, a glow cut a tenth of the darkest sRGB step); age changes rebake only what they change (preview fields and atlas slices while the age keeps changing, then the full fields a face per frame, with no frame carrying a whole bake); the nebula is composed per frame from baked noise fields; the star dust layer, invisible in game, was removed (the starfield keeps three layers).
 - The star is set by its mass alone (0..1, log scale); the system's age and metallicity age and colour it.
 
@@ -39,6 +40,7 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), ver
 
 ### Fixed
 
+- The build on recent Rust, which rejects an untyped float literal falling back to `f32` (`float_literal_f32_fallback`) under `-D warnings`: the inspector sliders' speeds are typed.
 - The star's point light no longer disappears when its small mesh leaves the camera's view frustum (it previously did, regardless of the light's range, because mesh and light shared a single frustum-culling bounding box on the same entity). The light now lives on its own child entity with no mesh, so it is never subject to that culling check in the first place.
 - `PointLight`'s shadow flag, renamed by the Bevy 0.19 upgrade (`shadows_enabled` -> `shadow_maps_enabled`).
 - The star's point light going dark whenever the orbit camera zoomed far enough out. The camera used `ClusterConfig::Single`, whose far-Z bound is, as of Bevy 0.19, computed from the previous frame's farthest visible object rather than the current frame's; a fast enough zoom-out could push the light past that lagging bound before it had a chance to grow back, after which it never recovered. The system only ever has a handful of lights, so clustering bought nothing here; removed the `ClusterConfig` component entirely.

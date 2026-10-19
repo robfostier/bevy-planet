@@ -1,6 +1,6 @@
-//! The star's look: a custom surface material (`assets/shaders/star_system/star/star.wgsl`:
+//! The star's look: a custom surface material (`assets/shaders/star_system/star/star.wesl`:
 //! core-to-limb gradient, granulation, cracks) and an additive corona billboard
-//! (`assets/shaders/star_system/star/corona.wgsl`: a soft glow). The star is set by its
+//! (`assets/shaders/star_system/star/corona.wesl`: a soft glow). The star is set by its
 //! mass (`StarParams`) and the system's age and composition (`physics`); its look derives from
 //! the base style (`style`) through `appearance`.
 
@@ -40,11 +40,11 @@ pub(super) struct StarMaterial {
 
 impl Material for StarMaterial {
     fn vertex_shader() -> ShaderRef {
-        "shaders/star_system/star/star.wgsl".into()
+        "shaders/star_system/star/star.wesl".into()
     }
 
     fn fragment_shader() -> ShaderRef {
-        "shaders/star_system/star/star.wgsl".into()
+        "shaders/star_system/star/star.wesl".into()
     }
 
     /// Emissive: never in a depth prepass (whose default vertex shader would
@@ -66,11 +66,11 @@ pub(super) struct CoronaMaterial {
 
 impl Material for CoronaMaterial {
     fn vertex_shader() -> ShaderRef {
-        "shaders/star_system/star/corona.wgsl".into()
+        "shaders/star_system/star/corona.wesl".into()
     }
 
     fn fragment_shader() -> ShaderRef {
-        "shaders/star_system/star/corona.wgsl".into()
+        "shaders/star_system/star/corona.wesl".into()
     }
 
     fn alpha_mode(&self) -> AlphaMode {

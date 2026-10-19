@@ -21,7 +21,7 @@ use crate::sky::nebula::gas::NebulaBakeState;
 
 const WORKGROUP_SIZE: u32 = 8;
 
-/// Mirrors `MaskBake` in `mask.wgsl`: the globules' scatter, the density
+/// Mirrors `MaskBake` in `mask.wesl`: the globules' scatter, the density
 /// below which they never show, and the mask's resolution.
 #[derive(Clone, Copy, Default, ShaderType)]
 pub(super) struct GpuMaskBake {

@@ -1,4 +1,4 @@
-//! The sky, exposed as `SkyPlugin`: a sphere (`assets/shaders/sky/sky.wgsl`)
+//! The sky, exposed as `SkyPlugin`: a sphere (`assets/shaders/sky/sky.wesl`)
 //! that composites its parts, each a module mirroring its shaders:
 //! - `nebula`: the gas (a cubemap baked on the GPU) and the Bok globules
 //!   backlit by it;
@@ -24,7 +24,7 @@ use bevy::{
     shader::ShaderRef,
 };
 use nebula::{
-    gas::NebulaCubemaps,
+    gas::{NebulaCubemaps, NebulaQueueSet},
     globules::{self, GlobuleAtlas, GlobuleMask, GlobuleStyle},
     properties::{NebulaProperties, derive_nebula_properties},
 };
@@ -33,7 +33,7 @@ use uniforms::GpuSky;
 
 use crate::system::SystemParams;
 
-const SHADER_ASSET_PATH: &str = "shaders/sky/sky.wgsl";
+const SHADER_ASSET_PATH: &str = "shaders/sky/sky.wesl";
 
 /// Display brightness of the baked nebula, in cd/m^2 (scaled by the exposure).
 const NEBULA_BRIGHTNESS: f32 = 1e5;
@@ -189,7 +189,9 @@ impl Plugin for SkyPlugin {
             )
             .add_systems(
                 Update,
-                show_nebula_fields.run_if(resource_changed::<NebulaCubemaps>),
+                show_nebula_fields
+                    .run_if(resource_changed::<NebulaCubemaps>)
+                    .after(NebulaQueueSet),
             );
     }
 }

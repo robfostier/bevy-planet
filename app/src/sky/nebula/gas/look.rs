@@ -1,5 +1,5 @@
 //! The gas's look at runtime (`GpuNebulaLook`, mirroring `NebulaLook` in
-//! `sky/nebula/gas.wgsl`): the style's shaping and palette, evolved by the
+//! `sky/nebula/gas.wesl`): the style's shaping and palette, evolved by the
 //! nebula's properties. The sky composes the gas from the baked fields with it
 //! every frame, so the system's evolution costs no bake.
 

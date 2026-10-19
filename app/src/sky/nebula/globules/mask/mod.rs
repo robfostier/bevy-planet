@@ -1,4 +1,4 @@
-//! The globules' mask (`assets/shaders/sky/nebula/globules/mask.wgsl`): a
+//! The globules' mask (`assets/shaders/sky/nebula/globules/mask.wesl`): a
 //! low-resolution cubemap of where a globule may show at any age (with the
 //! most gas a cloud keeps), baked on the GPU for each system seed, after the
 //! gas (it reads the style's density). The sky skips its search for globules
@@ -20,11 +20,11 @@ use bevy::{
 use pipeline::{GpuMaskBake, MaskBakeState, init_mask_pipeline, prepare_mask_bake, run_mask_bake};
 
 use super::{GlobuleStyle, GpuGlobules, SEED_PATH};
-use crate::sky::nebula::gas::{NebulaBakeSet, NebulaCubemaps};
+use crate::sky::nebula::gas::{NebulaBakeSet, NebulaCubemaps, NebulaQueueSet};
 use crate::sky::nebula::properties::MOST_GAS_LEFT;
 use crate::system::SystemParams;
 
-const SHADER_ASSET_PATH: &str = "shaders/sky/nebula/globules/mask.wgsl";
+const SHADER_ASSET_PATH: &str = "shaders/sky/nebula/globules/mask.wesl";
 /// Texels on a side of a face: a fraction of the smallest globules' reach.
 const RESOLUTION: u32 = 512;
 
@@ -40,6 +40,7 @@ impl FromWorld for GlobuleMask {
 
 /// One bake request, extracted to the render world.
 #[derive(Resource, Clone, ExtractResource)]
+#[extract_app(RenderApp)]
 struct MaskBakeJob {
     bake: GpuMaskBake,
     generation: u64,
@@ -100,7 +101,12 @@ pub(super) fn build(app: &mut App) {
     app.init_resource::<GlobuleMask>()
         .add_plugins(ExtractResourcePlugin::<MaskBakeJob>::default())
         .add_systems(Startup, init_mask)
-        .add_systems(Update, queue_bake.run_if(resource_changed::<SystemParams>));
+        .add_systems(
+            Update,
+            queue_bake
+                .run_if(resource_changed::<SystemParams>)
+                .after(NebulaQueueSet),
+        );
 
     app.sub_app_mut(RenderApp)
         .init_resource::<MaskBakeState>()

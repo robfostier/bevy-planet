@@ -1,4 +1,4 @@
-//! The starfield (`assets/shaders/sky/starfield.wgsl`): its tunables
+//! The starfield (`assets/shaders/sky/starfield.wesl`): its tunables
 //! (`StarfieldStyle`, edited live in the inspector) and their uniforms.
 
 use bevy::{prelude::*, render::render_resource::ShaderType};
@@ -90,7 +90,7 @@ impl Default for StarfieldStyle {
     }
 }
 
-/// Mirrors `StarLayer` in `starfield.wgsl`.
+/// Mirrors `StarLayer` in `starfield.wesl`.
 #[derive(Clone, Copy, Default, ShaderType)]
 pub(crate) struct GpuStarLayer {
     scale: f32,
@@ -104,7 +104,7 @@ pub(crate) struct GpuStarLayer {
     _pad0: u32,
 }
 
-/// Mirrors `StarLook` in `starfield.wgsl`.
+/// Mirrors `StarLook` in `starfield.wesl`.
 #[derive(Clone, Copy, Default, ShaderType)]
 pub(crate) struct GpuStarLook {
     /// Radians.

@@ -82,7 +82,7 @@ impl Default for GlobuleStyle {
     }
 }
 
-/// Mirrors `GlobuleLook` in `globules/look.wgsl`.
+/// Mirrors `GlobuleLook` in `globules/look.wesl`.
 #[derive(Clone, Copy, Default, ShaderType)]
 pub(crate) struct GpuGlobules {
     count_large: f32,

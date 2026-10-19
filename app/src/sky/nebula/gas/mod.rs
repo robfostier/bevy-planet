@@ -1,6 +1,6 @@
 //! The nebula's gas: its style (`params`), its cubemaps (`NebulaCubemaps`),
 //! baked on the GPU with a compute shader
-//! (`assets/shaders/sky/nebula/gas/bake.wgsl`).
+//! (`assets/shaders/sky/nebula/gas/bake.wesl`).
 //!
 //! - The noise is the `noise` crate's Perlin / Fbm / RidgedMulti, reproduced
 //!   exactly: its permutation tables are generated on the CPU (one per field
@@ -37,7 +37,7 @@ pub(crate) use look::{Evolution, GpuNebulaLook};
 pub(crate) use params::NebulaStyle;
 pub(crate) use pipeline::NebulaBakeState;
 
-const SHADER_ASSET_PATH: &str = "shaders/sky/nebula/gas/bake.wgsl";
+const SHADER_ASSET_PATH: &str = "shaders/sky/nebula/gas/bake.wesl";
 const WORKGROUP_SIZE: u32 = 8;
 /// Texels on a side of the cubemaps' faces: the fields' (the gas's detail),
 /// the carry's (a smooth displacement) and the density's (the globules' light
@@ -49,6 +49,11 @@ const DENSITY_RESOLUTION: u32 = 256;
 /// preview, until the age settles.
 const PREVIEW_RESOLUTION: u32 = 256;
 
+/// The system that queues the cubemaps' bakes (what reads `NebulaCubemaps`
+/// runs after it).
+#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
+pub(crate) struct NebulaQueueSet;
+
 /// The render-graph system that bakes the cubemaps (what reads them in the
 /// render graph runs after it).
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
@@ -56,7 +61,7 @@ pub(crate) struct NebulaBakeSet;
 
 /// The nebula's cubemaps, reserved at plugin-build (so they exist before any
 /// system reads them) and never replaced: allocated here, baked at startup and
-/// whenever the system's seed or age changes (`bake.wgsl`).
+/// whenever the system's seed or age changes (`bake.wesl`).
 /// - `fields`: the noise fields the sky composes the gas of, every frame;
 /// - `preview`: the same at a low resolution, while the age keeps changing;
 /// - `shown`: which of the two the sky reads;
@@ -88,6 +93,7 @@ impl FromWorld for NebulaCubemaps {
 
 /// One bake request, extracted to the render world.
 #[derive(Resource, Clone, ExtractResource)]
+#[extract_app(RenderApp)]
 struct NebulaBakeJob {
     params: GpuNebulaParams,
     tables: Vec<u32>,
@@ -110,6 +116,7 @@ struct Dispatches {
 /// The generation of the last bake, written by the render world: the next
 /// one waits for it (a face asked for before is never lost).
 #[derive(Resource, Clone, Default, ExtractResource)]
+#[extract_app(RenderApp)]
 struct NebulaBakedGeneration(Arc<AtomicU64>);
 
 /// An (uninitialised) storage cubemap, `resolution` texels a side.
@@ -149,7 +156,7 @@ pub(super) fn build(app: &mut App) {
             ExtractResourcePlugin::<NebulaBakedGeneration>::default(),
         ))
         .add_systems(Startup, init_cubemaps)
-        .add_systems(Update, queue_bake);
+        .add_systems(Update, queue_bake.in_set(NebulaQueueSet));
 
     app.sub_app_mut(RenderApp)
         .init_resource::<NebulaBakeState>()
