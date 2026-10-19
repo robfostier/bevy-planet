@@ -4,8 +4,8 @@ use bevy::{
 };
 
 use bevy_planet::{
-    camera::CameraPlugin, dev_tools::DevToolsPlugin, skybox::SkyboxPlugin,
-    star_system::StarSystemPlugin, system::SystemPlugin,
+    camera::CameraPlugin, dev_tools::DevToolsPlugin, sky::SkyPlugin, star_system::StarSystemPlugin,
+    system::SystemPlugin,
 };
 
 fn main() -> AppExit {
@@ -13,7 +13,7 @@ fn main() -> AppExit {
         .add_plugins((
             DefaultPlugins,
             SystemPlugin,
-            SkyboxPlugin,
+            SkyPlugin,
             StarSystemPlugin,
             CameraPlugin,
             DevToolsPlugin,

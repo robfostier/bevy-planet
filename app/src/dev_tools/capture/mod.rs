@@ -7,7 +7,11 @@
 //!   looking at a target (overrides the orbit camera);
 //! - `CAPTURE_SCREENSHOT=path.png`: saves the game camera's image after a few
 //!   seconds: the window, or an offscreen image of `CAPTURE_SIZE=WxH` (e.g.
-//!   2560x1440, beyond the window's size; without the inspector overlay).
+//!   2560x1440, beyond the window's size; without the inspector overlay);
+//! - `CAPTURE_SKY=dir` (and `CAPTURE_SKY_RES`, default 1440): renders the whole
+//!   sky as six 90-degree faces, see `sky`.
+
+mod sky;
 
 use bevy::{
     camera::RenderTarget,
@@ -137,7 +141,7 @@ pub(super) fn build(app: &mut App) {
             PostUpdate,
             (
                 pin_camera.before(TransformSystems::Propagate),
-                (render_offscreen, screenshot).chain(),
+                (render_offscreen, screenshot, sky::capture_sky).chain(),
             ),
         );
 }

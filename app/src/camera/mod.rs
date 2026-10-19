@@ -8,14 +8,10 @@ mod input;
 mod picking;
 mod sync;
 
-use crate::{
-    skybox::SkyboxCubemap,
-    star_system::{StarSystemSet, SystemBodies},
-};
+use crate::star_system::{StarSystemSet, SystemBodies};
 use bevy::{
     camera::{Exposure, Hdr},
     core_pipeline::tonemapping::Tonemapping,
-    light::Skybox,
     post_process::{bloom::Bloom, effect_stack::Vignette},
     prelude::*,
 };
@@ -66,7 +62,7 @@ struct OrbitCamera {
 
 /// Spawns the single orbit camera, with no target yet (assigned next frame
 /// by `bind_orbit_camera_target`).
-fn spawn_orbit_camera(mut commands: Commands, cubemap: Res<SkyboxCubemap>) {
+fn spawn_orbit_camera(mut commands: Commands) {
     commands.spawn((
         Camera3d::default(),
         Name::new("Orbit Camera"),
@@ -92,11 +88,6 @@ fn spawn_orbit_camera(mut commands: Commands, cubemap: Res<SkyboxCubemap>) {
         },
         Vignette {
             intensity: 0.35,
-            ..default()
-        },
-        Skybox {
-            image: Some(cubemap.0.clone()),
-            brightness: 1e5,
             ..default()
         },
     ));

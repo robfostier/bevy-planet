@@ -17,15 +17,11 @@ use bevy_inspector_egui::{
     bevy_inspector,
 };
 
-use crate::skybox::{
-    ContrastParams, DriftParams, GammaParams, LevelsParams, MaskParams, NoiseParams, PaletteParams,
-    RidgeParams, SkyboxParams, WarpParams,
-};
 use crate::star_system::star::{StarParams, StarProperties};
 use crate::system::SystemParams;
 
 /// Spawns a dedicated 2D overlay camera for the egui inspector, so egui stops
-/// piggybacking on the HDR orbit camera (where the skybox pass drew over it). It
+/// piggybacking on the HDR orbit camera (where the sky pass drew over it). It
 /// renders after the orbit camera without clearing, and carries `PrimaryEguiContext`
 /// so bevy_egui targets it.
 fn spawn_dev_tools_camera(mut commands: Commands) {
@@ -71,9 +67,6 @@ fn dev_tools_ui(world: &mut World) {
                     bevy_inspector::ui_for_resource::<StarProperties>(world, ui);
                 });
             });
-            CollapsingHeader::new("Skybox").show(ui, |ui| {
-                bevy_inspector::ui_for_resource::<SkyboxParams>(world, ui);
-            });
         });
     });
 }
@@ -87,26 +80,16 @@ pub struct DevToolsPlugin;
 
 impl Plugin for DevToolsPlugin {
     fn build(&self, app: &mut App) {
-        app.register_type::<NoiseParams>()
-            .register_type::<ContrastParams>()
-            .register_type::<LevelsParams>()
-            .register_type::<GammaParams>()
-            .register_type::<RidgeParams>()
-            .register_type::<WarpParams>()
-            .register_type::<MaskParams>()
-            .register_type::<DriftParams>()
-            .register_type::<PaletteParams>()
-            .register_type::<SkyboxParams>()
-            .add_plugins((
-                EguiPlugin::default(),
-                DefaultInspectorConfigPlugin,
-                LogDiagnosticsPlugin::default(),
-                FrameTimeDiagnosticsPlugin::default(),
-                EntityCountDiagnosticsPlugin::default(),
-                SystemInformationDiagnosticsPlugin,
-            ))
-            .add_systems(Startup, spawn_dev_tools_camera)
-            .add_systems(EguiPrimaryContextPass, dev_tools_ui);
+        app.add_plugins((
+            EguiPlugin::default(),
+            DefaultInspectorConfigPlugin,
+            LogDiagnosticsPlugin::default(),
+            FrameTimeDiagnosticsPlugin::default(),
+            EntityCountDiagnosticsPlugin::default(),
+            SystemInformationDiagnosticsPlugin,
+        ))
+        .add_systems(Startup, spawn_dev_tools_camera)
+        .add_systems(EguiPrimaryContextPass, dev_tools_ui);
 
         capture::build(app);
 
